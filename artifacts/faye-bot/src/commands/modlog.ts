@@ -1,6 +1,7 @@
 import {
   ChatInputCommandInteraction,
   SlashCommandBuilder,
+  PermissionFlagsBits,
   EmbedBuilder,
   TextChannel,
   ChannelType,
@@ -11,6 +12,7 @@ import { eq, desc, and } from "drizzle-orm";
 export const data = new SlashCommandBuilder()
   .setName("modlog")
   .setDescription("[Admin] View or delete anonymous submissions")
+  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addSubcommand((sub) =>
     sub
       .setName("confessions")
