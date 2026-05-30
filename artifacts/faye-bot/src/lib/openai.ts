@@ -25,5 +25,6 @@ export async function getFayeResponse(userMessage: string, username: string): Pr
     ],
   });
 
-  return completion.choices[0]?.message?.content ?? "The garden winds are still... try again in a moment. 🍃";
+  const text = completion.choices[0]?.message?.content;
+  return text && text.trim() ? text.trim() : "The garden winds are still... try again in a moment. 🍃";
 }

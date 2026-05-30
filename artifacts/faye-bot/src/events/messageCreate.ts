@@ -29,7 +29,8 @@ async function handleFayeMessage(message: Message, content: string) {
 
   try {
     const response = await getFayeResponse(content, message.author.username);
-    await message.reply(response);
+    const text = response && response.trim() ? response : "The garden winds are still... try again in a moment. 🍃";
+    await message.reply(text);
   } catch (err) {
     console.error("Error getting Faye response:", err);
     await message.reply("The garden winds are restless right now... try again in a moment. 🍃");

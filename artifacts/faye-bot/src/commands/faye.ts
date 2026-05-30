@@ -15,7 +15,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   try {
     const response = await getFayeResponse(message, interaction.user.username);
-    await interaction.editReply(response);
+    const text = response && response.trim() ? response : "The garden winds are still... try again in a moment. 🍃";
+    await interaction.editReply(text);
   } catch (err) {
     console.error("Error getting Faye AI response:", err);
     await interaction.editReply("The garden winds are restless right now... try again in a moment. 🍃");
