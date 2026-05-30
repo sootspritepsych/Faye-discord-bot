@@ -27,8 +27,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const sub = interaction.options.getSubcommand();
 
   if (sub === "set" || sub === "remove") {
-    const member = interaction.guild?.members.cache.get(interaction.user.id);
-    const isAdmin = member?.permissions.has("ManageMessages");
+    const isAdmin = interaction.memberPermissions?.has("ManageMessages");
 
     if (!isAdmin) {
       await interaction.editReply("Only staff members with Manage Messages permission can set sticky messages. 🍃");

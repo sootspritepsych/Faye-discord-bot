@@ -80,8 +80,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 
   // Mod-only commands
-  const member = interaction.guild?.members.cache.get(interaction.user.id);
-  const isAdmin = member?.permissions.has("ManageGuild");
+  const isAdmin = interaction.memberPermissions?.has("ManageGuild");
 
   if (!isAdmin) {
     await interaction.editReply("Only staff members can use this command. 🍃");

@@ -60,8 +60,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const member = interaction.guild?.members.cache.get(interaction.user.id);
-  const isAdmin = member?.permissions.has("Administrator");
+  const isAdmin = interaction.memberPermissions?.has("Administrator");
 
   if (!isAdmin) {
     await interaction.editReply("Only server administrators can use mod log commands. 🍃");
