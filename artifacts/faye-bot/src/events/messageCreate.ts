@@ -21,14 +21,7 @@ async function handleFayeMessage(message: Message, content: string) {
   cooldowns.set(userId, now);
 
   if (!content) {
-    await message.reply({
-      embeds: [
-        {
-          description: "You called for me? 🌿 Ask me anything — I'm here to help.",
-          color: 0x81c784,
-        },
-      ],
-    });
+    await message.reply("You called for me? 🌿 Ask me anything — I'm here to help.");
     return;
   }
 
@@ -36,15 +29,7 @@ async function handleFayeMessage(message: Message, content: string) {
 
   try {
     const response = await getFayeResponse(content, message.author.username);
-    await message.reply({
-      embeds: [
-        {
-          description: response,
-          color: 0x81c784,
-          footer: { text: "Faye · Garden of Harmony 🍃" },
-        },
-      ],
-    });
+    await message.reply(response);
   } catch (err) {
     console.error("Error getting Faye response:", err);
     await message.reply("The garden winds are restless right now... try again in a moment. 🍃");

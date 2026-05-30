@@ -15,14 +15,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   try {
     const response = await getFayeResponse(message, interaction.user.username);
-
-    const embed = new EmbedBuilder()
-      .setColor(0x81c784)
-      .setAuthor({ name: "Faye · Guardian of the Garden", iconURL: interaction.client.user?.displayAvatarURL() })
-      .setDescription(response)
-      .setFooter({ text: "Garden of Harmony 🍃" });
-
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(response);
   } catch (err) {
     console.error("Error getting Faye AI response:", err);
     await interaction.editReply("The garden winds are restless right now... try again in a moment. 🍃");
