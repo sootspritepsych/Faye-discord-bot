@@ -27,6 +27,8 @@ export const reminders = pgTable("faye_reminders", {
 export const confessions = pgTable("faye_confessions", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
   content: text("content").notNull(),
   messageId: text("message_id"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -35,6 +37,8 @@ export const confessions = pgTable("faye_confessions", {
 export const suggestions = pgTable("faye_suggestions", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
   content: text("content").notNull(),
   messageId: text("message_id"),
   yesVotes: integer("yes_votes").default(0),
@@ -95,6 +99,8 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS faye_confessions (
       id SERIAL PRIMARY KEY,
       guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL DEFAULT 'unknown',
+      username TEXT NOT NULL DEFAULT 'unknown',
       content TEXT NOT NULL,
       message_id TEXT,
       created_at TIMESTAMP DEFAULT NOW()
@@ -103,12 +109,19 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS faye_suggestions (
       id SERIAL PRIMARY KEY,
       guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL DEFAULT 'unknown',
+      username TEXT NOT NULL DEFAULT 'unknown',
       content TEXT NOT NULL,
       message_id TEXT,
       yes_votes INTEGER DEFAULT 0,
       no_votes INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT NOW()
     );
+
+    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
 
     CREATE TABLE IF NOT EXISTS faye_qotd_suggestions (
       id SERIAL PRIMARY KEY,

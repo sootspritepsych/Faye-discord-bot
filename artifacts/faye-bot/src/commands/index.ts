@@ -7,6 +7,7 @@ import * as sticky from "./sticky";
 import * as reminder from "./reminder";
 import * as setup from "./setup";
 import * as faye from "./faye";
+import * as modlog from "./modlog";
 
 export interface Command {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,7 +15,7 @@ export interface Command {
   execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }
 
-const commandList: Command[] = [confess, suggest, qotd, sticky, reminder, setup, faye];
+const commandList: Command[] = [confess, suggest, qotd, sticky, reminder, setup, faye, modlog];
 
 export const commands = new Collection<string, Command>();
 for (const cmd of commandList) {

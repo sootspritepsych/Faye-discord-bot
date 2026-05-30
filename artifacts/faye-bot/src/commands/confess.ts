@@ -54,6 +54,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   await db.insert(confessions).values({
     guildId: interaction.guildId,
+    userId: interaction.user.id,
+    username: interaction.user.username,
     content: message,
     messageId: sent.id,
   });

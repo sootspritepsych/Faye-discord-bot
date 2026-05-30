@@ -50,6 +50,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     .insert(suggestions)
     .values({
       guildId: interaction.guildId,
+      userId: interaction.user.id,
+      username: interaction.user.username,
       content: idea,
     })
     .returning();
