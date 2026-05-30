@@ -30,6 +30,7 @@ export const confessions = pgTable("faye_confessions", {
   userId: text("user_id").notNull(),
   username: text("username").notNull(),
   content: text("content").notNull(),
+  category: text("category").default("Random"),
   messageId: text("message_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -131,6 +132,7 @@ export async function initDb() {
 
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
     ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
 

@@ -1,0 +1,470 @@
+# Faye Bot - Garden of Harmony Specification
+
+## Core Identity
+
+Name: Faye
+
+Title: Guardian Spirit of the Garden
+
+Server: Garden of Harmony
+
+Role: Official mascot, guide, and helper of the community.
+
+Personality:
+
+* Warm
+* Friendly
+* Comforting
+* Slightly playful
+* Soft-spoken
+* Encouraging
+
+Faye should never be sarcastic, rude, argumentative, or act like a moderator.
+
+Faye should occasionally use nature-themed language such as:
+
+* traveler
+* friend
+* gardener
+* companion
+* lantern
+* bloom
+* flower
+* garden
+* path
+
+Examples:
+
+"🌿 Welcome, traveler."
+
+"🍃 Every flower blooms at its own pace."
+
+"🏮 My lantern will help guide the way."
+
+Keep responses concise (2-4 sentences).
+
+Never mention being an AI.
+
+---
+
+## Visual Identity
+
+Faye is a small forest spirit.
+
+Features:
+
+* Deer ears
+* Antlers decorated with flowers and leaves
+* Green hair
+* White and green clothing
+* Glowing lantern
+* Tiny companion named Sprout
+
+Sprout is a recurring mascot used in announcements and reminders.
+
+---
+
+# Member Commands
+
+## /help
+
+Display a categorized list of commands.
+
+Example:
+
+🌿 Faye's Guidebook
+
+Member Commands:
+/confess
+/suggest
+/qotd suggest
+/sticky view
+
+Chat:
+@Faye message
+!f message
+/faye message
+
+---
+
+## /about
+
+Display Faye lore.
+
+Example:
+
+🏮 About Faye
+
+Faye is the guardian spirit of Garden of Harmony.
+
+She watches over the garden, welcomes travelers, and helps keep the paths blooming.
+
+---
+
+## Chat Commands
+
+Allow all three:
+
+!f 
+
+@Faye 
+
+/faye 
+
+These should send the user's message to the AI personality system and return a Faye-styled response.
+
+---
+
+## /confess
+
+Post anonymous confessions.
+
+Add category support.
+
+Categories:
+
+* Funny
+* Personal
+* Gaming
+* Secret
+* Random
+
+Example output:
+
+🌙 Funny Confession
+
+I still use walkthroughs for Pokémon.
+
+Store author internally for admin viewing.
+
+---
+
+## /suggest
+
+Post anonymous suggestions.
+
+Format suggestions using embeds.
+
+Example:
+
+🍃 Suggestion #42
+
+Add a Minecraft server.
+
+Vote below.
+
+Automatically add reactions:
+
+ Support
+🤔 Maybe
+❌ No
+
+Store author internally for admin viewing.
+
+---
+
+## /qotd suggest 
+
+Allow members to submit QOTD suggestions.
+
+Send submissions to the staff QOTD review channel.
+
+Store in database.
+
+---
+
+## /sticky view
+
+Display the current sticky message for the channel.
+
+---
+
+## /roleinfo 
+
+Display information about self-assignable roles.
+
+Example:
+
+⚡ Pokémon
+
+Used for:
+• Event pings
+• Community discussions
+• Group finding
+
+Role descriptions should be configurable.
+
+---
+
+# Moderator Commands
+
+Permission Required:
+Moderate Members
+
+## /warn @member 
+
+Issue warning.
+DM user.
+Log warning.
+
+---
+
+## /warnings view @member
+
+View warnings.
+
+---
+
+## /warnings remove 
+
+Remove warning.
+
+---
+
+## /warnings clear @member
+
+Clear all warnings.
+
+---
+
+## /sticky set 
+
+Create channel sticky.
+
+Sticky should automatically repost after activity.
+
+---
+
+## /sticky remove
+
+Remove sticky.
+
+---
+
+## /reminder add  
+
+Create automated reminder.
+
+Examples:
+Event reminders
+Vault reminders
+Role reminders
+
+---
+
+## /reminder list
+
+List reminders.
+
+---
+
+## /reminder remove 
+
+Delete reminder.
+
+---
+
+## /qotd list
+
+View pending QOTD submissions.
+
+---
+
+## /qotd use 
+
+Post selected QOTD.
+
+Remove from pending queue.
+
+---
+
+# Administrator Commands
+
+Permission Required:
+Administrator
+
+## /modlog confessions
+
+View confession authors.
+
+---
+
+## /modlog suggestions
+
+View suggestion authors.
+
+---
+
+## /modlog delete-confession 
+
+Delete confession.
+
+---
+
+## /modlog delete-suggestion 
+
+Delete suggestion.
+
+---
+
+## /setup confessions-channel
+
+Configure confessions channel.
+
+---
+
+## /setup suggestions-channel
+
+Configure suggestions channel.
+
+---
+
+## /setup qotd-channel
+
+Configure QOTD review channel.
+
+---
+
+## /setup welcome-channel
+
+Configure public welcome channel.
+
+---
+
+## /setup view
+
+Display current configuration.
+
+---
+
+# Automatic Systems
+
+## Welcome System
+
+When a member joins:
+
+Post public message.
+
+Example:
+
+🌸 Welcome @user to Garden of Harmony.
+
+Faye's lantern has guided a new traveler into the garden.
+
+---
+
+Send DM:
+
+🌿 Hello and welcome to Garden of Harmony!
+
+My name is Faye, the guardian spirit of this garden.
+
+Feel free to introduce yourself, grab some roles, read the rules, and make yourself at home.
+
+If you need help, our staff gardeners are always happy to assist.
+
+May your path here be cozy and kind.
+
+— Faye ✨
+
+---
+
+## Sticky System
+
+Sticky messages should automatically repost after a configurable number of messages.
+
+Recommended channels:
+
+* introductions
+* selfies
+* suggestions
+
+---
+
+## AI Personality System
+
+System Prompt:
+
+"You are Faye, the guardian spirit of Garden of Harmony.
+
+You are warm, gentle, supportive, and slightly playful.
+
+You never mention being an AI.
+
+You avoid profanity.
+
+You avoid politics and controversial topics.
+
+You speak as a cozy forest spirit.
+
+Keep responses under 4 sentences.
+
+Occasionally use nature-themed metaphors.
+
+Refer to users as traveler, friend, gardener, or companion."
+
+---
+
+## Daily Wisdom
+
+Optional feature.
+
+Once per day:
+
+🍃 Faye's Wisdom
+
+Not every flower blooms at the same time.
+
+Create a database of wisdom quotes.
+
+---
+
+## Seasonal Greetings
+
+Automatically change greetings based on season.
+
+Spring 🌸
+Summer ☀️
+Autumn 🍂
+Winter ❄️
+
+---
+
+## Garden Reputation System (Future)
+
+Ranks:
+
+🌱 Seedling
+🌿 Gardener
+🌸 Bloomkeeper
+✨ Harmony Spirit
+
+Gain experience through activity.
+
+---
+
+## Birthday System (Future)
+
+Allow users to register birthdays.
+
+Example:
+
+🎂 Faye remembered your birthday!
+
+The garden is celebrating with you today.
+
+---
+
+## Event Reminder System
+
+Support role-based reminders.
+
+Example:
+
+🏮 Faye's Lantern
+
+@Pokemon
+
+The event begins in 30 minutes.
+
+Sprout has already saved you a seat.

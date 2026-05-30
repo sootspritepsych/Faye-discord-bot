@@ -2,9 +2,6 @@ import {
   ChatInputCommandInteraction,
   SlashCommandBuilder,
   EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   TextChannel,
   ChannelType,
 } from "discord.js";
@@ -58,27 +55,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const embed = new EmbedBuilder()
     .setColor(0x81c784)
-    .setTitle("🌿 Anonymous Suggestion")
+    .setTitle(`🍃 Suggestion #${inserted.id}`)
     .setDescription(idea)
-    .addFields(
-      { name: "✅ Yes", value: "0", inline: true },
-      { name: "❌ No", value: "0", inline: true }
-    )
-    .setFooter({ text: "Vote using the buttons below · Garden of Harmony" })
+    .setFooter({ text: "Vote below · Garden of Harmony" })
     .setTimestamp();
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`suggest-yes_${inserted.id}`)
-      .setLabel("✅ Yes")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`suggest-no_${inserted.id}`)
-      .setLabel("❌ No")
-      .setStyle(ButtonStyle.Danger)
-  );
+  const sent = await (channel as TextChannel).send({ embeds: [embed] });
 
-  const sent = await (channel as TextChannel).send({ embeds: [embed], components: [row] });
+  // Add reaction votes
+  await sent.react("👍");
+  await sent.react("🤔");
+  await sent.react("❌");
 
   await db.update(suggestions).set({ messageId: sent.id }).where(eq(suggestions.id, inserted.id));
 

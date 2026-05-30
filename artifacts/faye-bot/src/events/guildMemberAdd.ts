@@ -1,4 +1,4 @@
-import { Client, Events, GuildMember, EmbedBuilder, TextChannel, ChannelType } from "discord.js";
+import { Client, Events, GuildMember, TextChannel, ChannelType } from "discord.js";
 import { db, guildConfig } from "../lib/database";
 import { eq } from "drizzle-orm";
 
@@ -10,35 +10,26 @@ export default function registerGuildMemberAddEvent(client: Client) {
         .from(guildConfig)
         .where(eq(guildConfig.guildId, member.guild.id));
 
-      const welcomeEmbed = new EmbedBuilder()
-        .setColor(0x81c784)
-        .setTitle("✨ Welcome to the Garden of Harmony!")
-        .setDescription(
-          `Hello, **${member.user.username}**! 🌸\n\nMy name is **Faye**, the guardian spirit of this garden. I'm so glad you found your way here.\n\n` +
-          `Here are a few things to help you settle in:\n` +
-          `🌿 **Introduce yourself** in our introductions channel — we'd love to know you\n` +
-          `🎀 **Grab some roles** to customize your experience\n` +
-          `🌻 **Say hello** in the general chat — everyone here is friendly!\n\n` +
-          `If you ever need help, our wonderful staff team is always here. This garden grows with every soul who joins it. Welcome home. 💚`
-        )
-        .setThumbnail(member.user.displayAvatarURL())
-        .setFooter({ text: "Garden of Harmony · Faye, guardian spirit 🍃" })
-        .setTimestamp();
+      const dmMessage =
+        `🌿 Hello and welcome to **Garden of Harmony**!\n\n` +
+        `My name is **Faye**, the guardian spirit of this garden.\n\n` +
+        `Feel free to introduce yourself, grab some roles, read the rules, and make yourself at home.\n\n` +
+        `If you need help, our staff gardeners are always happy to assist.\n\n` +
+        `May your path here be cozy and kind.\n\n` +
+        `— Faye ✨`;
 
       try {
-        await member.send({ embeds: [welcomeEmbed] });
+        await member.send(dmMessage);
       } catch {
-        // DMs closed — try welcome channel if configured
+        // DMs closed — fall through to welcome channel
       }
 
       if (config?.welcomeChannelId) {
         const channel = await client.channels.fetch(config.welcomeChannelId);
         if (channel && channel.type === ChannelType.GuildText) {
-          const textChannel = channel as TextChannel;
-          await textChannel.send({
-            content: `Welcome to the garden, <@${member.user.id}>! 🌸`,
-            embeds: [welcomeEmbed],
-          });
+          await (channel as TextChannel).send(
+            `🌸 Welcome <@${member.user.id}> to Garden of Harmony.\n\nFaye's lantern has guided a new traveler into the garden.`
+          );
         }
       }
     } catch (err) {
