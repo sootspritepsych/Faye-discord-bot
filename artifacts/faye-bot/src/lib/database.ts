@@ -55,6 +55,17 @@ export const qotdSuggestions = pgTable("faye_qotd_suggestions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const warnings = pgTable("faye_warnings", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  moderatorId: text("moderator_id").notNull(),
+  moderatorUsername: text("moderator_username").notNull(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const guildConfig = pgTable("faye_guild_config", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull().unique(),
@@ -122,6 +133,17 @@ export async function initDb() {
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
+
+    CREATE TABLE IF NOT EXISTS faye_warnings (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      moderator_id TEXT NOT NULL,
+      moderator_username TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
 
     CREATE TABLE IF NOT EXISTS faye_qotd_suggestions (
       id SERIAL PRIMARY KEY,

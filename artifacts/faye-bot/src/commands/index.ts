@@ -8,6 +8,8 @@ import * as reminder from "./reminder";
 import * as setup from "./setup";
 import * as faye from "./faye";
 import * as modlog from "./modlog";
+import * as warn from "./warn";
+import * as warnings from "./warnings";
 
 export interface Command {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,7 +17,7 @@ export interface Command {
   execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }
 
-const commandList: Command[] = [confess, suggest, qotd, sticky, reminder, setup, faye, modlog];
+const commandList: Command[] = [confess, suggest, qotd, sticky, reminder, setup, faye, modlog, warn, warnings];
 
 export const commands = new Collection<string, Command>();
 for (const cmd of commandList) {
