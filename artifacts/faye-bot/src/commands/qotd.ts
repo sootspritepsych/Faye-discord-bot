@@ -5,24 +5,22 @@ import { TextChannel, ChannelType } from "discord.js";
 
 export const data = new SlashCommandBuilder()
   .setName("qotd")
-  .setDescription("QOTD commands")
+  .setDescription("Question of the Day commands")
   .addSubcommand((sub) =>
     sub
       .setName("suggest")
-      .setDescription("Suggest a question of the day for the mods to consider")
+      .setDescription("Suggest a question of the day for the mods to review")
       .addStringOption((opt) =>
         opt.setName("question").setDescription("Your QOTD question").setRequired(true).setMaxLength(500)
       )
   )
   .addSubcommand((sub) =>
-    sub
-      .setName("list")
-      .setDescription("[Mod only] View all pending QOTD suggestions")
+    sub.setName("list").setDescription("[Mod] View all pending QOTD suggestions")
   )
   .addSubcommand((sub) =>
     sub
       .setName("use")
-      .setDescription("[Mod only] Post a QOTD suggestion to the server")
+      .setDescription("[Mod] Post a QOTD suggestion to the server")
       .addIntegerOption((opt) =>
         opt.setName("id").setDescription("The ID of the QOTD suggestion to post").setRequired(true)
       )
@@ -67,9 +65,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       const embed = new EmbedBuilder()
         .setColor(0xc8e6c9)
         .setTitle("💬 New QOTD Suggestion")
-        .setDescription(question)
-        .addFields({ name: "Suggestion ID", value: String(inserted.id) })
-        .setFooter({ text: `Submitted by ${interaction.user.username} · Use /qotd use <id> to post` })
+        .setDescription(`**${question}**`)
+        .addFields(
+          { name: "Suggestion ID", value: `#${inserted.id}`, inline: true },
+          { name: "Action", value: `\`/qotd use ${inserted.id}\``, inline: true }
+        )
+        .setFooter({ text: `Submitted by ${interaction.user.username} · Garden of Harmony` })
         .setTimestamp();
 
       await (channel as TextChannel).send({ embeds: [embed] });
@@ -79,10 +80,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  // Mod-only commands
-  const isAdmin = interaction.memberPermissions?.has("ManageGuild");
-
-  if (!isAdmin) {
+  // Mod-only subcommands
+  const isMod = interaction.memberPermissions?.has("ManageGuild");
+  if (!isMod) {
     await interaction.editReply("Only staff members can use this command. 🍃");
     return;
   }
@@ -98,11 +98,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    const list = pending
-      .map((q: { id: number; question: string; submittedBy: string }) => `**#${q.id}** — ${q.question} *(by ${q.submittedBy})*`)
-      .join("\n");
+    const embed = new EmbedBuilder()
+      .setColor(0xa5d6a7)
+      .setTitle("🌸 Pending QOTD Suggestions")
+      .setDescription(
+        pending
+          .map((q) => `**#${q.id}** — ${q.question}\n*by ${q.submittedBy}*`)
+          .join("\n\n")
+      )
+      .setFooter({ text: "Use /qotd use <id> to post · Garden of Harmony" });
 
-    await interaction.editReply({ content: `**Pending QOTD Suggestions:**\n\n${list}` });
+    await interaction.editReply({ embeds: [embed] });
     return;
   }
 
@@ -124,8 +130,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .from(guildConfig)
       .where(eq(guildConfig.guildId, interaction.guildId));
 
-    // Post to a general channel or the qotd mod channel
-    const channelId = config?.qotdModChannelId;
+    // Prefer the public post channel; fall back to mod channel
+    const channelId = config?.qotdPostChannelId ?? config?.qotdModChannelId;
     if (!channelId) {
       await interaction.editReply("No QOTD channel configured. Use `/setup qotd-channel` first.");
       return;
@@ -141,11 +147,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setColor(0x66bb6a)
       .setTitle("🌸 Question of the Day")
       .setDescription(`**${qotd.question}**`)
-      .setFooter({ text: "Garden of Harmony · Share your thoughts below!" })
+      .setFooter({ text: "Garden of Harmony · Share your thoughts below! 🍃" })
       .setTimestamp();
 
     await (channel as TextChannel).send({ embeds: [embed] });
     await db.update(qotdSuggestions).set({ used: true }).where(eq(qotdSuggestions.id, id));
-    await interaction.editReply(`QOTD #${id} has been posted! 🌿`);
+    await interaction.editReply(`QOTD **#${id}** has been posted to <#${channelId}>! 🌿`);
   }
 }

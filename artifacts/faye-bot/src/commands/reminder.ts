@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { db, reminders } from "../lib/database";
 import { eq, and } from "drizzle-orm";
 import { scheduleReminder, cancelReminder } from "../lib/reminderScheduler";
@@ -6,7 +6,7 @@ import cron from "node-cron";
 
 export const data = new SlashCommandBuilder()
   .setName("reminder")
-  .setDescription("Manage automated vault reminders")
+  .setDescription("Manage automated reminders")
   .addSubcommand((sub) =>
     sub
       .setName("add")
@@ -20,8 +20,11 @@ export const data = new SlashCommandBuilder()
           .setDescription("Cron schedule (e.g. '0 18 * * 1' = Mondays at 6pm UTC)")
           .setRequired(true)
       )
+      .addRoleOption((opt) =>
+        opt.setName("role").setDescription("Role to ping (optional — uses Sprout event format when set)").setRequired(false)
+      )
       .addStringOption((opt) =>
-        opt.setName("role-id").setDescription("Role ID to tag (optional)").setRequired(false)
+        opt.setName("event-name").setDescription("Event name shown in the footer (e.g. 'Pokémon Night')").setRequired(false)
       )
   )
   .addSubcommand((sub) =>
@@ -44,9 +47,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const isAdmin = interaction.memberPermissions?.has("ManageGuild");
-
-  if (!isAdmin) {
+  const isMod = interaction.memberPermissions?.has("ManageGuild");
+  if (!isMod) {
     await interaction.editReply("Only staff members can manage reminders. 🍃");
     return;
   }
@@ -56,7 +58,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   if (sub === "add") {
     const message = interaction.options.getString("message", true);
     const schedule = interaction.options.getString("schedule", true);
-    const roleId = interaction.options.getString("role-id") ?? null;
+    const role = interaction.options.getRole("role");
+    const eventName = interaction.options.getString("event-name");
 
     if (!cron.validate(schedule)) {
       await interaction.editReply(
@@ -72,7 +75,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         channelId: interaction.channelId,
         message,
         cronExpression: schedule,
-        tagRoleId: roleId,
+        tagRoleId: role?.id ?? null,
+        eventName: eventName ?? null,
       })
       .returning();
 
@@ -82,11 +86,23 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       message: inserted.message,
       cronExpression: inserted.cronExpression,
       tagRoleId: inserted.tagRoleId ?? null,
+      eventName: inserted.eventName ?? null,
     });
 
-    await interaction.editReply(
-      `Reminder #${inserted.id} scheduled! 🌿\n**Message:** ${message}\n**Schedule:** \`${schedule}\`${roleId ? `\n**Tags role:** <@&${roleId}>` : ""}`
-    );
+    const embed = new EmbedBuilder()
+      .setColor(0x81c784)
+      .setTitle("🏮 Reminder Scheduled")
+      .addFields(
+        { name: "Message", value: message },
+        { name: "Schedule", value: `\`${schedule}\``, inline: true },
+        { name: "ID", value: `#${inserted.id}`, inline: true }
+      );
+
+    if (role) embed.addFields({ name: "Pings", value: `<@&${role.id}>`, inline: true });
+    if (eventName) embed.addFields({ name: "Event", value: eventName, inline: true });
+    embed.setFooter({ text: "Garden of Harmony · Faye 🍃" });
+
+    await interaction.editReply({ embeds: [embed] });
     return;
   }
 
@@ -101,14 +117,22 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    const list = all
-      .map((r) => {
-        const tag = r.tagRoleId ? ` | Tags: <@&${r.tagRoleId}>` : "";
-        return `**#${r.id}** — ${r.message}\nSchedule: \`${r.cronExpression}\` | Channel: <#${r.channelId}>${tag}`;
-      })
-      .join("\n\n");
+    const embed = new EmbedBuilder()
+      .setColor(0xa5d6a7)
+      .setTitle("🌿 Active Reminders")
+      .setDescription(
+        all
+          .map((r) => {
+            const parts = [`**#${r.id}** — ${r.message}`, `Schedule: \`${r.cronExpression}\` · <#${r.channelId}>`];
+            if (r.tagRoleId) parts.push(`Pings: <@&${r.tagRoleId}>`);
+            if (r.eventName) parts.push(`Event: ${r.eventName}`);
+            return parts.join("\n");
+          })
+          .join("\n\n")
+      )
+      .setFooter({ text: "Garden of Harmony · Faye 🍃" });
 
-    await interaction.editReply(`**Active Reminders:**\n\n${list}`);
+    await interaction.editReply({ embeds: [embed] });
     return;
   }
 
@@ -127,6 +151,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     await db.update(reminders).set({ active: false }).where(eq(reminders.id, id));
     cancelReminder(id);
-    await interaction.editReply(`Reminder #${id} has been removed. 🍃`);
+    await interaction.editReply(`Reminder **#${id}** has been removed from the garden. 🍃`);
   }
 }

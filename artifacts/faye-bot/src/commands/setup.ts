@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { db, guildConfig } from "../lib/database";
 import { eq } from "drizzle-orm";
 
@@ -24,17 +24,49 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("qotd-channel")
-      .setDescription("Set the mod-only channel for QOTD suggestions and posting")
+      .setDescription("Set the mod-only channel for QOTD review (where suggestions arrive)")
       .addChannelOption((opt) =>
         opt.setName("channel").setDescription("The channel for QOTD moderation").setRequired(true)
       )
   )
   .addSubcommand((sub) =>
     sub
+      .setName("qotd-post-channel")
+      .setDescription("Set the public channel where QOTD is automatically posted each day")
+      .addChannelOption((opt) =>
+        opt.setName("channel").setDescription("The public QOTD channel").setRequired(true)
+      )
+      .addIntegerOption((opt) =>
+        opt
+          .setName("hour")
+          .setDescription("UTC hour to auto-post (0–23, default 9)")
+          .setRequired(false)
+          .setMinValue(0)
+          .setMaxValue(23)
+      )
+  )
+  .addSubcommand((sub) =>
+    sub
       .setName("welcome-channel")
-      .setDescription("Set a channel where Faye posts welcome messages (in addition to DMs)")
+      .setDescription("Set a channel where Faye posts welcome messages when members join")
       .addChannelOption((opt) =>
         opt.setName("channel").setDescription("The welcome channel").setRequired(true)
+      )
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("wisdom-channel")
+      .setDescription("Set the channel where Faye posts daily wisdom quotes")
+      .addChannelOption((opt) =>
+        opt.setName("channel").setDescription("The daily wisdom channel").setRequired(true)
+      )
+      .addIntegerOption((opt) =>
+        opt
+          .setName("hour")
+          .setDescription("UTC hour to post each day (0–23, default 8)")
+          .setRequired(false)
+          .setMinValue(0)
+          .setMaxValue(23)
       )
   )
   .addSubcommand((sub) =>
@@ -50,7 +82,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 
   const isAdmin = interaction.memberPermissions?.has("Administrator");
-
   if (!isAdmin) {
     await interaction.editReply("Only server administrators can configure Faye. 🍃");
     return;
@@ -89,10 +120,30 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
+  if (sub === "qotd-post-channel") {
+    const channel = interaction.options.getChannel("channel", true);
+    const hour = interaction.options.getInteger("hour") ?? 9;
+    await upsertConfig({ qotdPostChannelId: channel.id, qotdPostHour: hour });
+    await interaction.editReply(
+      `QOTD auto-post channel set to <#${channel.id}> at **${hour}:00 UTC** daily. 🌸`
+    );
+    return;
+  }
+
   if (sub === "welcome-channel") {
     const channel = interaction.options.getChannel("channel", true);
     await upsertConfig({ welcomeChannelId: channel.id });
-    await interaction.editReply(`Welcome channel set to <#${channel.id}>. New members will be greeted there! 🌸`);
+    await interaction.editReply(`Welcome channel set to <#${channel.id}>. New travelers will be greeted there! 🌸`);
+    return;
+  }
+
+  if (sub === "wisdom-channel") {
+    const channel = interaction.options.getChannel("channel", true);
+    const hour = interaction.options.getInteger("hour") ?? 8;
+    await upsertConfig({ wisdomChannelId: channel.id, wisdomPostHour: hour });
+    await interaction.editReply(
+      `Daily wisdom channel set to <#${channel.id}> at **${hour}:00 UTC**. 🍃 Use \`/wisdom add\` to plant quotes!`
+    );
     return;
   }
 
@@ -103,17 +154,29 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .where(eq(guildConfig.guildId, interaction.guildId));
 
     if (!config) {
-      await interaction.editReply("Faye hasn't been configured for this server yet. Use the other `/setup` subcommands to get started.");
+      await interaction.editReply("Faye hasn't been configured for this server yet. Use the other `/setup` subcommands to get started. 🌱");
       return;
     }
 
-    const lines = [
-      `**Confessions channel:** ${config.confessionsChannelId ? `<#${config.confessionsChannelId}>` : "Not set"}`,
-      `**Suggestions channel:** ${config.suggestionsChannelId ? `<#${config.suggestionsChannelId}>` : "Not set"}`,
-      `**QOTD mod channel:** ${config.qotdModChannelId ? `<#${config.qotdModChannelId}>` : "Not set"}`,
-      `**Welcome channel:** ${config.welcomeChannelId ? `<#${config.welcomeChannelId}>` : "Not set (DM only)"}`,
-    ];
+    const embed = new EmbedBuilder()
+      .setColor(0x81c784)
+      .setTitle("🌿 Faye — Server Configuration")
+      .addFields(
+        {
+          name: "📬 Channels",
+          value: [
+            `Confessions: ${config.confessionsChannelId ? `<#${config.confessionsChannelId}>` : "Not set"}`,
+            `Suggestions: ${config.suggestionsChannelId ? `<#${config.suggestionsChannelId}>` : "Not set"}`,
+            `QOTD Mod: ${config.qotdModChannelId ? `<#${config.qotdModChannelId}>` : "Not set"}`,
+            `QOTD Auto-Post: ${config.qotdPostChannelId ? `<#${config.qotdPostChannelId}> at ${config.qotdPostHour ?? 9}:00 UTC` : "Disabled"}`,
+            `Welcome: ${config.welcomeChannelId ? `<#${config.welcomeChannelId}>` : "DM only"}`,
+            `Daily Wisdom: ${config.wisdomChannelId ? `<#${config.wisdomChannelId}> at ${config.wisdomPostHour ?? 8}:00 UTC` : "Not set"}`,
+          ].join("\n"),
+        }
+      )
+      .setFooter({ text: "Garden of Harmony · Faye 🍃" })
+      .setTimestamp();
 
-    await interaction.editReply(`**Faye Configuration** 🌿\n\n${lines.join("\n")}`);
+    await interaction.editReply({ embeds: [embed] });
   }
 }

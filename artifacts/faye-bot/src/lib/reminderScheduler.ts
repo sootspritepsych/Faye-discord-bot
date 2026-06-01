@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { Client, TextChannel, ChannelType } from "discord.js";
+import { Client, TextChannel, ChannelType, EmbedBuilder } from "discord.js";
 import { db, reminders } from "./database";
 import { eq } from "drizzle-orm";
 
@@ -20,7 +20,14 @@ export async function loadReminders(client: Client) {
 
 export function scheduleReminder(
   client: Client,
-  reminder: { id: number; channelId: string; message: string; cronExpression: string; tagRoleId: string | null }
+  reminder: {
+    id: number;
+    channelId: string;
+    message: string;
+    cronExpression: string;
+    tagRoleId: string | null;
+    eventName?: string | null;
+  }
 ) {
   if (!cron.validate(reminder.cronExpression)) {
     console.error(`Invalid cron expression for reminder ${reminder.id}: ${reminder.cronExpression}`);
@@ -33,19 +40,30 @@ export function scheduleReminder(
       if (!channel || channel.type !== ChannelType.GuildText) return;
 
       const textChannel = channel as TextChannel;
-      const content = reminder.tagRoleId
-        ? `<@&${reminder.tagRoleId}> ${reminder.message}`
-        : reminder.message;
 
-      await textChannel.send({
-        embeds: [
-          {
-            description: content,
-            color: 0x81c784,
-            footer: { text: "🌿 Faye · Garden of Harmony" },
-          },
-        ],
-      });
+      if (reminder.tagRoleId) {
+        // Role event reminder — Sprout format
+        const eventLabel = reminder.eventName ?? "Event";
+        const embed = new EmbedBuilder()
+          .setColor(0x81c784)
+          .setTitle("🏮 Faye's Lantern")
+          .setDescription(
+            `<@&${reminder.tagRoleId}>\n\n${reminder.message}\n\n*Sprout has already saved you a seat. 🌱*`
+          )
+          .setFooter({ text: `${eventLabel} · Garden of Harmony` })
+          .setTimestamp();
+
+        await textChannel.send({ embeds: [embed] });
+      } else {
+        // Standard reminder
+        const embed = new EmbedBuilder()
+          .setColor(0xa5d6a7)
+          .setDescription(`🍃 ${reminder.message}`)
+          .setFooter({ text: "Garden of Harmony · Faye 🌿" })
+          .setTimestamp();
+
+        await textChannel.send({ embeds: [embed] });
+      }
     } catch (err) {
       console.error(`Error sending reminder ${reminder.id}:`, err);
     }

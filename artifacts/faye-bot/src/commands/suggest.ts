@@ -57,12 +57,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     .setColor(0x81c784)
     .setTitle(`🍃 Suggestion #${inserted.id}`)
     .setDescription(idea)
-    .setFooter({ text: "Vote below · Garden of Harmony" })
+    .setFooter({ text: "Vote below · Garden of Harmony 🌿" })
     .setTimestamp();
 
   const sent = await (channel as TextChannel).send({ embeds: [embed] });
 
-  // Add reaction votes
   await sent.react("👍");
   await sent.react("🤔");
   await sent.react("❌");

@@ -1,5 +1,5 @@
 import { Client, Events, GuildMember, TextChannel, ChannelType } from "discord.js";
-import { db, guildConfig } from "../lib/database";
+import { db, guildConfig, welcomeJourneys } from "../lib/database";
 import { eq } from "drizzle-orm";
 
 export default function registerGuildMemberAddEvent(client: Client) {
@@ -32,6 +32,13 @@ export default function registerGuildMemberAddEvent(client: Client) {
           );
         }
       }
+
+      // Record welcome journey for 24h follow-up
+      await db.insert(welcomeJourneys).values({
+        guildId: member.guild.id,
+        userId: member.user.id,
+        joinTime: new Date(),
+      });
     } catch (err) {
       console.error("Error handling guildMemberAdd:", err);
     }

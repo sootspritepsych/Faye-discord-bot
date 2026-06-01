@@ -20,6 +20,7 @@ export const reminders = pgTable("faye_reminders", {
   message: text("message").notNull(),
   cronExpression: text("cron_expression").notNull(),
   tagRoleId: text("tag_role_id"),
+  eventName: text("event_name"),
   active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -31,6 +32,17 @@ export const confessions = pgTable("faye_confessions", {
   username: text("username").notNull(),
   content: text("content").notNull(),
   category: text("category").default("Random"),
+  messageId: text("message_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const confessionReplies = pgTable("faye_confession_replies", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  confessionId: integer("confession_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  content: text("content").notNull(),
   messageId: text("message_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -67,13 +79,34 @@ export const warnings = pgTable("faye_warnings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const wisdomQuotes = pgTable("faye_wisdom", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  content: text("content").notNull(),
+  used: boolean("used").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const welcomeJourneys = pgTable("faye_welcome_journeys", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  joinTime: timestamp("join_time").notNull().defaultNow(),
+  sent: boolean("sent").default(false),
+  sentAt: timestamp("sent_at"),
+});
+
 export const guildConfig = pgTable("faye_guild_config", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull().unique(),
   confessionsChannelId: text("confessions_channel_id"),
   suggestionsChannelId: text("suggestions_channel_id"),
   qotdModChannelId: text("qotd_mod_channel_id"),
+  qotdPostChannelId: text("qotd_post_channel_id"),
+  qotdPostHour: integer("qotd_post_hour").default(9),
   welcomeChannelId: text("welcome_channel_id"),
+  wisdomChannelId: text("wisdom_channel_id"),
+  wisdomPostHour: integer("wisdom_post_hour").default(8),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -85,7 +118,11 @@ export async function initDb() {
       confessions_channel_id TEXT,
       suggestions_channel_id TEXT,
       qotd_mod_channel_id TEXT,
+      qotd_post_channel_id TEXT,
+      qotd_post_hour INTEGER DEFAULT 9,
       welcome_channel_id TEXT,
+      wisdom_channel_id TEXT,
+      wisdom_post_hour INTEGER DEFAULT 8,
       updated_at TIMESTAMP DEFAULT NOW()
     );
 
@@ -104,6 +141,7 @@ export async function initDb() {
       message TEXT NOT NULL,
       cron_expression TEXT NOT NULL,
       tag_role_id TEXT,
+      event_name TEXT,
       active BOOLEAN DEFAULT TRUE,
       created_at TIMESTAMP DEFAULT NOW()
     );
@@ -113,6 +151,18 @@ export async function initDb() {
       guild_id TEXT NOT NULL,
       user_id TEXT NOT NULL DEFAULT 'unknown',
       username TEXT NOT NULL DEFAULT 'unknown',
+      content TEXT NOT NULL,
+      category TEXT DEFAULT 'Random',
+      message_id TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS faye_confession_replies (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      confession_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
       content TEXT NOT NULL,
       message_id TEXT,
       created_at TIMESTAMP DEFAULT NOW()
@@ -129,12 +179,6 @@ export async function initDb() {
       no_votes INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT NOW()
     );
-
-    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
-    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
-    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
-    ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
-    ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
 
     CREATE TABLE IF NOT EXISTS faye_warnings (
       id SERIAL PRIMARY KEY,
@@ -155,6 +199,35 @@ export async function initDb() {
       used BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS faye_wisdom (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      used BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS faye_welcome_journeys (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      join_time TIMESTAMP NOT NULL DEFAULT NOW(),
+      sent BOOLEAN DEFAULT FALSE,
+      sent_at TIMESTAMP
+    );
+
+    -- Migrations for existing tables
+    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
+    ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE faye_reminders ADD COLUMN IF NOT EXISTS event_name TEXT;
+    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_channel_id TEXT;
+    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_hour INTEGER DEFAULT 9;
+    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_channel_id TEXT;
+    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_post_hour INTEGER DEFAULT 8;
   `);
   console.log("🌿 Faye database tables initialized");
 }
