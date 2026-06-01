@@ -115,7 +115,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    await postDailyWisdom(interaction.client, interaction.guildId, config.wisdomChannelId);
+    await postDailyWisdom(interaction.client, interaction.guildId, config.wisdomChannelId, config.wisdomPingRoleId);
     await interaction.editReply("🍃 Today's wisdom has been posted!");
   }
 }

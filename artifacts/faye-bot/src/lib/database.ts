@@ -107,6 +107,7 @@ export const guildConfig = pgTable("faye_guild_config", {
   welcomeChannelId: text("welcome_channel_id"),
   wisdomChannelId: text("wisdom_channel_id"),
   wisdomPostHour: integer("wisdom_post_hour").default(8),
+  wisdomPingRoleId: text("wisdom_ping_role_id"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -228,6 +229,7 @@ export async function initDb() {
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_hour INTEGER DEFAULT 9;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_channel_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_post_hour INTEGER DEFAULT 8;
+    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
   `);
   console.log("🌿 Faye database tables initialized");
 }

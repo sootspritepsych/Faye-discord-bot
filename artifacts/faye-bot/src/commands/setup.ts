@@ -70,6 +70,14 @@ export const data = new SlashCommandBuilder()
       )
   )
   .addSubcommand((sub) =>
+    sub
+      .setName("wisdom-ping")
+      .setDescription("Set a role to ping when Faye posts daily wisdom (or clear it)")
+      .addRoleOption((opt) =>
+        opt.setName("role").setDescription("Role to ping — leave empty to remove the ping").setRequired(false)
+      )
+  )
+  .addSubcommand((sub) =>
     sub.setName("view").setDescription("View current Faye configuration for this server")
   );
 
@@ -147,6 +155,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
+  if (sub === "wisdom-ping") {
+    const role = interaction.options.getRole("role");
+    await upsertConfig({ wisdomPingRoleId: role?.id ?? null });
+    if (role) {
+      await interaction.editReply(`Daily wisdom will now ping <@&${role.id}> when it posts. 🍃`);
+    } else {
+      await interaction.editReply("Wisdom ping role cleared — posts will no longer tag anyone. 🌿");
+    }
+    return;
+  }
+
   if (sub === "view") {
     const [config] = await db
       .select()
@@ -171,6 +190,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             `QOTD Auto-Post: ${config.qotdPostChannelId ? `<#${config.qotdPostChannelId}> at ${config.qotdPostHour ?? 9}:00 UTC` : "Disabled"}`,
             `Welcome: ${config.welcomeChannelId ? `<#${config.welcomeChannelId}>` : "DM only"}`,
             `Daily Wisdom: ${config.wisdomChannelId ? `<#${config.wisdomChannelId}> at ${config.wisdomPostHour ?? 8}:00 UTC` : "Not set"}`,
+            `Wisdom Ping: ${config.wisdomPingRoleId ? `<@&${config.wisdomPingRoleId}>` : "None"}`,
           ].join("\n"),
         }
       )

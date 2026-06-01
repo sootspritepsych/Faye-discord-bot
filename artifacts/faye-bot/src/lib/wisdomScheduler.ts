@@ -29,7 +29,7 @@ export async function startWisdomScheduler(client: Client) {
       if ((config.wisdomPostHour ?? 8) !== currentHour) continue;
 
       try {
-        await postDailyWisdom(client, config.guildId, config.wisdomChannelId);
+        await postDailyWisdom(client, config.guildId, config.wisdomChannelId, config.wisdomPingRoleId);
       } catch (err) {
         console.error(`Error posting daily wisdom for guild ${config.guildId}:`, err);
       }
@@ -39,7 +39,7 @@ export async function startWisdomScheduler(client: Client) {
   console.log("🌿 Daily wisdom scheduler started");
 }
 
-export async function postDailyWisdom(client: Client, guildId: string, channelId: string) {
+export async function postDailyWisdom(client: Client, guildId: string, channelId: string, pingRoleId?: string | null) {
   const channel = await client.channels.fetch(channelId);
   if (!channel || channel.type !== ChannelType.GuildText) return;
 
@@ -78,5 +78,6 @@ export async function postDailyWisdom(client: Client, guildId: string, channelId
     .setFooter({ text: "— Sprout 🌱 · Garden of Harmony" })
     .setTimestamp();
 
-  await (channel as TextChannel).send({ embeds: [embed] });
+  const content = pingRoleId ? `<@&${pingRoleId}>` : undefined;
+  await (channel as TextChannel).send({ content, embeds: [embed] });
 }
