@@ -18,18 +18,5 @@ export default function registerReadyEvent(client: Client) {
     await startWelcomeJourneyScheduler(client);
     await startQotdScheduler(client);
     
-/*
-try {
-  const { getFayeResponse } = await import("../lib/openai");
-  const test = await getFayeResponse(
-    "say hello in one word",
-    "system-test"
-  );
-  console.log(`AI health check passed. Response: "${test}"`);
-} catch (err) {
-  console.error("AI health check FAILED on startup:", err);
-}
-*/
-    
   });
 }
