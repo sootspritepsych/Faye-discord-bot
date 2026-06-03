@@ -41,6 +41,34 @@ if (!content) {
 const lowerContent = content.toLowerCase();
 
 if (lowerContent.startsWith("remember that ")) {
+  const naturalMemoryPatterns = [
+  "my favorite ",
+  "my favourite ",
+  "i like ",
+  "i love ",
+  "my dog is ",
+  "my cat is ",
+  "my pet is ",
+  "my name is ",
+  "i am ",
+  "i'm ",
+];
+
+const shouldSaveNaturalMemory = naturalMemoryPatterns.some((pattern) =>
+  lowerContent.includes(pattern)
+);
+
+if (shouldSaveNaturalMemory && content.length <= 200) {
+  await saveUserMemory(
+    message.author.id,
+    message.author.username,
+    content
+  );
+
+  console.log(
+    `🧠 Natural memory saved for ${message.author.username}: ${content}`
+  );
+}
   const memory = content.slice("remember that ".length).trim();
 
   await saveUserMemory(
