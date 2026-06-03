@@ -17,14 +17,6 @@ export default function registerReadyEvent(client: Client) {
     await startWisdomScheduler(client);
     await startWelcomeJourneyScheduler(client);
     await startQotdScheduler(client);
-
-    // Startup AI health check — confirms whether the AI proxy is reachable
-    try {
-      const { getFayeResponse } = await import("../lib/openai");
-      const test = await getFayeResponse("say hello in one word", "system-test");
-      console.log(`✅ AI health check passed. Response: "${test}"`);
-    } catch (err) {
-      console.error("❌ AI health check FAILED on startup:", err);
-    }
+    
   });
 }
