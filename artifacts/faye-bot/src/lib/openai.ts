@@ -80,7 +80,7 @@ export async function getFayeResponse(userMessage: string, username: string): Pr
         finish_reason: completion.choices[0]?.finish_reason,
         usage: completion.usage,
       }));
-      return getFallback();
+      throw new Error("AI returned empty content");
     }
 
     console.log(`✅ AI responded (${completion.usage?.completion_tokens ?? "?"} tokens)`);
@@ -93,6 +93,6 @@ export async function getFayeResponse(userMessage: string, username: string): Pr
       const status = (err as { status?: number }).status;
       console.error(`❌ OpenAI API error [status=${status ?? "?"}]: ${message}`);
     }
-    return getFallback();
+    throw err;
   }
 }
