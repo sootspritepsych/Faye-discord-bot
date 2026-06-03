@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import type { MemoryMessage } from "./memory";
-import { getRecentMemory } from "./memory";
 
 let baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
 const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
@@ -27,13 +26,6 @@ export async function getFayeResponse(
   userMessage: string,
   username: string,
   recentMessages: MemoryMessage[] = []
-): Promise<string> {
-
-const memoryText = memories
-  .reverse()
-  .map(m => `${m.role}: ${m.content}`)
-  .join("\n");
-
 ): Promise<string> {
   if (!openai) {
     console.warn("getFayeResponse called but AI client not initialised");
