@@ -16,11 +16,17 @@ const TIMEOUT_MS = 30000;
 export async function getFayeResponse(
   userMessage: string,
   username: string,
-  recentMessages: MemoryMessage[] = []
+  recentMessages: MemoryMessage[] = [],
+  userMemories: string[] = []
 ): Promise<string> {
   if (!openai) {
     throw new Error("AI client not initialised");
   }
+
+  const memoryText =
+    userMemories.length > 0
+      ? userMemories.map((m) => `• ${m}`).join("\n")
+      : "No saved memories.";
 
   const timeoutPromise = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error("AI_TIMEOUT")), TIMEOUT_MS)
@@ -40,16 +46,20 @@ export async function getFayeResponse(
               "Sprout is your tiny magical forest companion and helper. Sprout is a real character, not a metaphor. " +
               "You remember details shared in recent conversation and may naturally reference them. " +
               "Never mention being an AI. Avoid profanity, politics, and controversial topics. " +
-              "Speak like a cozy forest spirit. Keep responses under 3 sentences."
+              "Speak like a cozy forest spirit. Keep responses under 3 sentences. " +
+              "Refer to users as traveler, friend, gardener, or companion.\n\n" +
+              "Known memories about this user:\n" +
+              memoryText +
+              "\n\n",
           },
           ...recentMessages,
           {
             role: "user",
-            content: `${username} says: ${userMessage}`
-          }
-        ]
+            content: `${username} says: ${userMessage}`,
+          },
+        ],
       }),
-      timeoutPromise
+      timeoutPromise,
     ]);
 
     const text = completion.choices[0]?.message?.content;
