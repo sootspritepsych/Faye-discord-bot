@@ -4,6 +4,7 @@ import { updateStickyMessage } from "../lib/stickyManager";
 import { db, stickyMessages } from "../lib/database";
 import { eq } from "drizzle-orm";
 import { getRecentConversation, saveConversationMessage } from "../lib/memory";
+import { saveMemory } from "../lib/memory";
 
 const PREFIX = "!f";
 const cooldowns = new Map<string, number>();
@@ -39,6 +40,14 @@ await saveConversationMessage(
 
 const recentMessages = await getRecentConversation(message.channel.id);
 
+await saveMemory(
+  message.channelId,
+  message.author.id,
+  message.author.username,
+  "user",
+  content
+);
+    
 const response = await getFayeResponse(
   content,
   message.author.username,
@@ -47,6 +56,14 @@ const response = await getFayeResponse(
 
 await message.reply(response);
 
+await saveMemory(
+  message.channelId,
+  client.user?.id || "faye",
+  "Faye",
+  "assistant",
+  text
+);
+    
 await saveConversationMessage(
   message.channel.id,
   client.user?.id ?? "faye",
