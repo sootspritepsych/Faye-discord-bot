@@ -38,7 +38,7 @@ export async function getFayeResponse(
   try {
     const completion = await Promise.race([
       openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-5-mini",
         max_tokens: 500,
         messages: [
           {
