@@ -1,7 +1,17 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+  ChatInputCommandInteraction,
+  SlashCommandBuilder,
+} from "discord.js";
 import { db, stickyMessages } from "../lib/database";
 import { eq } from "drizzle-orm";
 import { updateStickyMessage } from "../lib/stickyManager";
+
+function formatStickyContent(content: string) {
+  return content
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .trim();
+}
 
 export const data = new SlashCommandBuilder()
   .setName("sticky")
@@ -11,14 +21,22 @@ export const data = new SlashCommandBuilder()
       .setName("set")
       .setDescription("[Mod] Set or update the sticky message for the current channel")
       .addStringOption((opt) =>
-        opt.setName("message").setDescription("The sticky message content").setRequired(true).setMaxLength(1500)
+        opt
+          .setName("message")
+          .setDescription("Use \\n for line breaks")
+          .setRequired(true)
+          .setMaxLength(1500)
       )
   )
   .addSubcommand((sub) =>
-    sub.setName("remove").setDescription("[Mod] Remove the sticky message from the current channel")
+    sub
+      .setName("remove")
+      .setDescription("[Mod] Remove the sticky message from the current channel")
   )
   .addSubcommand((sub) =>
-    sub.setName("view").setDescription("View the current sticky message in this channel")
+    sub
+      .setName("view")
+      .setDescription("View the current sticky message in this channel")
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -30,24 +48,37 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const isAdmin = interaction.memberPermissions?.has("ManageMessages");
 
     if (!isAdmin) {
-      await interaction.editReply("Only staff members with Manage Messages permission can set sticky messages. 🍃");
+      await interaction.editReply(
+        "Only staff members with Manage Messages permission can set sticky messages. 🍃"
+      );
       return;
     }
   }
 
   if (sub === "set") {
-    const content = interaction.options.getString("message", true);
+    const rawContent = interaction.options.getString("message", true);
+    const content = formatStickyContent(rawContent);
 
     await db
       .insert(stickyMessages)
-      .values({ channelId: interaction.channelId, content })
+      .values({
+        channelId: interaction.channelId,
+        content,
+        lastMessageId: null,
+      })
       .onConflictDoUpdate({
         target: stickyMessages.channelId,
-        set: { content, lastMessageId: null },
+        set: {
+          content,
+          lastMessageId: null,
+        },
       });
 
     await updateStickyMessage(interaction.client, interaction.channelId);
-    await interaction.editReply("Sticky message set! It will reappear after each new message. 📌");
+
+    await interaction.editReply(
+      "Sticky message set! Use `\\n` where you want line breaks. 📌"
+    );
     return;
   }
 
@@ -65,6 +96,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (existing.lastMessageId) {
       try {
         const ch = await interaction.client.channels.fetch(interaction.channelId);
+
         if (ch?.isTextBased() && "messages" in ch) {
           const msg = await ch.messages.fetch(existing.lastMessageId);
           await msg.delete();
@@ -74,7 +106,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       }
     }
 
-    await db.delete(stickyMessages).where(eq(stickyMessages.channelId, interaction.channelId));
+    await db
+      .delete(stickyMessages)
+      .where(eq(stickyMessages.channelId, interaction.channelId));
+
     await interaction.editReply("Sticky message removed. 🍃");
     return;
   }
@@ -90,6 +125,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    await interaction.editReply(`**Current sticky message:**\n\n${existing.content}`);
+    await interaction.editReply(
+      `**Current sticky message:**\n\n${formatStickyContent(existing.content)}`
+    );
   }
 }
