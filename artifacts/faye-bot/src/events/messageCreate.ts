@@ -40,6 +40,12 @@ await saveConversationMessage(
 
 const recentMessages = await getRecentConversation(message.channel.id);
 
+const response = await getFayeResponse(
+  content,
+  message.author.username,
+  recentMessages
+);
+
 await saveMemory(
   message.channelId,
   message.author.id,
