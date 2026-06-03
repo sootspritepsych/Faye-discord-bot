@@ -33,7 +33,7 @@ function getFallback(): string {
   return FALLBACK_RESPONSES[Math.floor(Math.random() * FALLBACK_RESPONSES.length)];
 }
 
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 30000;
 
 export async function getFayeResponse(userMessage: string, username: string): Promise<string> {
 if (!openai) {
