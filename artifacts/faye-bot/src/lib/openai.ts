@@ -48,7 +48,7 @@ export async function getFayeResponse(userMessage: string, username: string): Pr
   try {
     const completion = await Promise.race([
       openai.chat.completions.create({
-        model: "gpt-5-mini",
+        model: "gpt-4o-mini",
         // gpt-5-mini is a reasoning model — it consumes tokens for internal
         // thinking before writing output. Use a generous budget so it doesn't
         // exhaust the limit on reasoning alone and return empty content.
