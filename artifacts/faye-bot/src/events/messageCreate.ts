@@ -16,7 +16,7 @@ message: Message,
 content: string
 ) {
 console.log(
-🌱 HANDLE_FAYE_MESSAGE | msg=${message.id} | user=${message.author.username}
+ HANDLE_FAYE_MESSAGE | msg=${message.id} | user=${message.author.username}
 );
 
 const userId = message.author.id;
@@ -89,7 +89,7 @@ content
 );
 
 console.log(
-  `🧠 Natural memory saved for ${message.author.username}: ${content}`
+  ` Natural memory saved for ${message.author.username}: ${content}`
 );
 
 }
@@ -116,7 +116,7 @@ const userMemories = await getUserMemories(
 );
 
 console.log(
-  `🤖 CALLING_OPENAI | msg=${message.id}`
+  ` CALLING_OPENAI | msg=${message.id}`
 );
 
 const response = await getFayeResponse(
