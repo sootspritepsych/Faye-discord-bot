@@ -14,6 +14,11 @@ async function handleFayeMessage(
   message: Message,
   content: string
 ) {
+
+  console.log(
+    `🌱 HANDLE_FAYE_MESSAGE | msg=${message.id} | user=${message.author.username}`
+  );
+
   const userId = message.author.id;
   const now = Date.now();
   const lastUsed = cooldowns.get(userId) ?? 0;
@@ -43,13 +48,17 @@ async function handleFayeMessage(
       content
     );
 
-    const recentMessages = await getRecentConversation(message.channel.id);
+   const recentMessages = await getRecentConversation(message.channel.id);
 
-    const response = await getFayeResponse(
-      content,
-      message.author.username,
-      recentMessages
-    );
+console.log(
+  `🤖 CALLING_OPENAI | msg=${message.id}`
+);
+
+const response = await getFayeResponse(
+  content,
+  message.author.username,
+  recentMessages
+);
 
     await message.reply(response);
 
@@ -78,7 +87,15 @@ export default function registerMessageCreateEvent(client: Client) {
     if (sticky && message.id !== sticky.lastMessageId) {
       setTimeout(() => updateStickyMessage(client, message.channelId), 1000);
     }
+    
+console.log(
+  `PREFIX_MATCH=${message.content.toLowerCase().startsWith(PREFIX)}`
+);
 
+console.log(
+  `MENTION_MATCH=${client.user && message.mentions.has(client.user)}`
+);
+    
     if (message.content.toLowerCase().startsWith(PREFIX)) {
       const content = message.content.slice(PREFIX.length).trim();
       await handleFayeMessage(client, message, content);
