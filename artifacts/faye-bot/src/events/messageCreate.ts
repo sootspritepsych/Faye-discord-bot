@@ -43,7 +43,23 @@ const lowerContent = content.toLowerCase();
 console.log(`CONTENT_RECEIVED: ${content}`);
   
 if (lowerContent.startsWith("remember that ")) {
-  const naturalMemoryPatterns = [
+  const memory = content.slice("remember that ".length).trim();
+
+  await saveUserMemory(
+    message.author.id,
+    message.author.username,
+    memory
+  );
+
+  await message.reply(
+    "I'll tuck that memory safely into the garden, dear traveler. 🌿"
+  );
+
+  return;
+}
+
+// natural memory block goes HERE
+const naturalMemoryPatterns = [
   "my favorite ",
   "my favourite ",
   "i like ",
@@ -59,6 +75,8 @@ if (lowerContent.startsWith("remember that ")) {
 const shouldSaveNaturalMemory = naturalMemoryPatterns.some((pattern) =>
   lowerContent.includes(pattern)
 );
+
+console.log(`MEMORY_CHECK=${shouldSaveNaturalMemory} | content=${content}`);
 
 if (shouldSaveNaturalMemory && content.length <= 200) {
   await saveUserMemory(
