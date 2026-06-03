@@ -111,6 +111,16 @@ export const guildConfig = pgTable("faye_guild_config", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const conversationHistory = pgTable("conversation_history", {
+  id: serial("id").primaryKey(),
+  channelId: text("channel_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS faye_guild_config (
