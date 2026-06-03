@@ -121,6 +121,14 @@ export const conversationHistory = pgTable("conversation_history", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const userMemories = pgTable("faye_user_memories", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  memory: text("memory").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS faye_guild_config (
@@ -227,6 +235,14 @@ export async function initDb() {
       sent BOOLEAN DEFAULT FALSE,
       sent_at TIMESTAMP
     );
+    
+    CREATE TABLE IF NOT EXISTS faye_user_memories (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      memory TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+);
 
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
