@@ -4,13 +4,16 @@ import { updateStickyMessage } from "../lib/stickyManager";
 import { db, stickyMessages } from "../lib/database";
 import { eq } from "drizzle-orm";
 import { getRecentConversation, saveConversationMessage } from "../lib/memory";
-import { saveMemory } from "../lib/memory";
 
 const PREFIX = "!f";
 const cooldowns = new Map<string, number>();
 const COOLDOWN_MS = 5000;
 
-async function handleFayeMessage(message: Message, content: string) {
+async function handleFayeMessage(
+  client: Client,
+  message: Message,
+  content: string
+) {
   const userId = message.author.id;
   const now = Date.now();
   const lastUsed = cooldowns.get(userId) ?? 0;
@@ -27,56 +30,36 @@ async function handleFayeMessage(message: Message, content: string) {
     return;
   }
 
-  if ("sendTyping" in message.channel) await message.channel.sendTyping();
+  if ("sendTyping" in message.channel) {
+    await message.channel.sendTyping();
+  }
 
   try {
-await saveConversationMessage(
-  message.channel.id,
-  message.author.id,
-  message.author.username,
-  "user",
-  content
-);
+    await saveConversationMessage(
+      message.channel.id,
+      message.author.id,
+      message.author.username,
+      "user",
+      content
+    );
 
-const recentMessages = await getRecentConversation(message.channel.id);
+    const recentMessages = await getRecentConversation(message.channel.id);
 
-const response = await getFayeResponse(
-  content,
-  message.author.username,
-  recentMessages
-);
+    const response = await getFayeResponse(
+      content,
+      message.author.username,
+      recentMessages
+    );
 
-await saveMemory(
-  message.channelId,
-  message.author.id,
-  message.author.username,
-  "user",
-  content
-);
-    
-const response = await getFayeResponse(
-  content,
-  message.author.username,
-  recentMessages
-);
+    await message.reply(response);
 
-await message.reply(response);
-
-await saveMemory(
-  message.channelId,
-  client.user?.id || "faye",
-  "Faye",
-  "assistant",
-  text
-);
-    
-await saveConversationMessage(
-  message.channel.id,
-  client.user?.id ?? "faye",
-  "Faye",
-  "assistant",
-  response
-);
+    await saveConversationMessage(
+      message.channel.id,
+      client.user?.id ?? "faye",
+      "Faye",
+      "assistant",
+      response
+    );
   } catch (err) {
     console.error("Error getting Faye response:", err);
     await message.reply("The garden winds are restless right now... try again in a moment. 🍃");
@@ -87,7 +70,6 @@ export default function registerMessageCreateEvent(client: Client) {
   client.on(Events.MessageCreate, async (message: Message) => {
     if (message.author.bot) return;
 
-    // Handle sticky messages — repost after each new message
     const [sticky] = await db
       .select()
       .from(stickyMessages)
@@ -97,20 +79,19 @@ export default function registerMessageCreateEvent(client: Client) {
       setTimeout(() => updateStickyMessage(client, message.channelId), 1000);
     }
 
-    // !f prefix — e.g. "!f how are you?" or just "!f"
     if (message.content.toLowerCase().startsWith(PREFIX)) {
       const content = message.content.slice(PREFIX.length).trim();
-      await handleFayeMessage(message, content);
+      await handleFayeMessage(client, message, content);
       return;
     }
 
-    // @mention — e.g. "@Faye how are you?"
     if (client.user && message.mentions.has(client.user)) {
       const content = message.content
         .replace(`<@${client.user.id}>`, "")
         .replace(`<@!${client.user.id}>`, "")
         .trim();
-      await handleFayeMessage(message, content);
+
+      await handleFayeMessage(client, message, content);
     }
   });
 }
