@@ -1,17 +1,3 @@
-Yep, that’s the issue.
-
-Your messageCreate.ts imports:
-
-getRecentConversation
-saveConversationMessage
-
-but your memory.ts exports:
-
-getRecentMemory
-saveMemory
-
-Replace your whole memory.ts with this:
-
 import { db, conversationHistory } from "./database";
 import { desc, eq } from "drizzle-orm";
 
