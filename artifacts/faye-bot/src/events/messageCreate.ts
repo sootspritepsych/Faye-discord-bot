@@ -40,6 +40,8 @@ if (!content) {
 
 const lowerContent = content.toLowerCase();
 
+console.log(`CONTENT_RECEIVED: ${content}`);
+  
 if (lowerContent.startsWith("remember that ")) {
   const naturalMemoryPatterns = [
   "my favorite ",
