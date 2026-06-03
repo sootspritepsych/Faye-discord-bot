@@ -1,7 +1,26 @@
+Yep, that’s the issue.
+
+Your messageCreate.ts imports:
+
+getRecentConversation
+saveConversationMessage
+
+but your memory.ts exports:
+
+getRecentMemory
+saveMemory
+
+Replace your whole memory.ts with this:
+
 import { db, conversationHistory } from "./database";
 import { desc, eq } from "drizzle-orm";
 
-export async function saveMemory(
+export type MemoryMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export async function saveConversationMessage(
   channelId: string,
   userId: string,
   username: string,
@@ -21,17 +40,25 @@ export async function saveMemory(
   }
 }
 
-export async function getRecentMemory(
+export async function getRecentConversation(
   channelId: string,
   limit = 10
-) {
+): Promise<MemoryMessage[]> {
   try {
-    return await db
+    const rows = await db
       .select()
       .from(conversationHistory)
       .where(eq(conversationHistory.channelId, channelId))
       .orderBy(desc(conversationHistory.createdAt))
       .limit(limit);
+
+    return rows.reverse().map((row) => ({
+      role: row.role as "user" | "assistant",
+      content:
+        row.role === "user"
+          ? `${row.username}: ${row.content}`
+          : row.content,
+    }));
   } catch (err) {
     console.error("Memory lookup failed:", err);
     return [];
