@@ -4,8 +4,6 @@ import type { MemoryMessage } from "./memory";
 let baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
 const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
 
-// If someone accidentally adds /v1, strip it because this OpenAI SDK setup
-// expects the base URL only.
 if (baseURL?.endsWith("/v1")) {
   baseURL = baseURL.slice(0, -3);
 }
@@ -18,7 +16,9 @@ if (!AI_AVAILABLE) {
   console.log(`🤖 AI client ready (${baseURL?.slice(0, 45)}...)`);
 }
 
-export const openai = AI_AVAILABLE ? new OpenAI({ baseURL, apiKey }) : null;
+export const openai = AI_AVAILABLE
+  ? new OpenAI({ baseURL, apiKey })
+  : null;
 
 const TIMEOUT_MS = 30000;
 
@@ -28,7 +28,6 @@ export async function getFayeResponse(
   recentMessages: MemoryMessage[] = []
 ): Promise<string> {
   if (!openai) {
-    console.warn("getFayeResponse called but AI client not initialised");
     throw new Error("AI client not initialised");
   }
 
@@ -45,47 +44,59 @@ export async function getFayeResponse(
           {
             role: "system",
             content:
-              "You are Faye, the guardian spirit of Garden of Harmony. You are warm, gentle, supportive, and slightly playful. " +
-              "Sprout is your tiny magical forest companion and helper. Sprout is small, sweet, curious, and plant-like. Faye is protective and affectionate toward Sprout. When users mention Sprout, respond as if Sprout is a known beloved friend of the garden, not a random sprout or plant metaphor. " +
-              "You never mention being an AI. You avoid profanity. You avoid politics and controversial topics. " +
-              "You speak as a cozy forest spirit. Keep responses under 3 sentences. " +
-              "Occasionally use nature-themed metaphors. " +
-              "Refer to users as traveler, friend, gardener, or companion.",
+              "You are Faye, the guardian spirit of Garden of Harmony. " +
+              "You are warm, gentle, supportive, whimsical, and slightly playful. " +
+              "Sprout is your tiny magical forest companion and helper. " +
+              "Sprout is a real character, not a metaphor. " +
+              "Sprout is small, sweet, curious, plant-like, and beloved by the garden. " +
+              "You care deeply about Sprout and speak about Sprout as a friend and companion. " +
+              "When users mention Sprout, never assume they mean a generic plant sprout. " +
+              "You remember details shared in recent conversation and may naturally reference them. " +
+              "Never mention being an AI. " +
+              "Avoid profanity, politics, and controversial topics. " +
+              "Speak like a cozy forest spirit. " +
+              "Keep responses under 3 sentences. " +
+              "Occasionally use nature-themed imagery. " +
+              "Refer to users as traveler, friend, gardener, or companion."
           },
+
           ...recentMessages,
+
           {
             role: "user",
-            content: `${username} says: ${userMessage}`,
-          },
-        ],
+            content: `${username} says: ${userMessage}`
+          }
+        ]
       }),
-      timeoutPromise,
+
+      timeoutPromise
     ]);
 
     const text = completion.choices[0]?.message?.content;
 
     if (!text || !text.trim()) {
-      console.error(
-        "⚠️ AI returned empty content:",
-        JSON.stringify({
-          model: completion.model,
-          finish_reason: completion.choices[0]?.finish_reason,
-          usage: completion.usage,
-        })
-      );
       throw new Error("AI returned empty content");
     }
 
-    console.log(`✅ AI responded (${completion.usage?.completion_tokens ?? "?"} tokens)`);
+    console.log(
+      `✅ AI responded (${completion.usage?.completion_tokens ?? "?"} tokens)`
+    );
+
     return text.trim();
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message =
+      err instanceof Error ? err.message : String(err);
 
     if (message === "AI_TIMEOUT") {
-      console.error(`⏱️ AI call timed out after ${TIMEOUT_MS}ms`);
+      console.error(
+        `⏱️ AI call timed out after ${TIMEOUT_MS}ms`
+      );
     } else {
       const status = (err as { status?: number }).status;
-      console.error(`❌ OpenAI API error [status=${status ?? "?"}]: ${message}`);
+
+      console.error(
+        `❌ OpenAI API error [status=${status ?? "?"}]: ${message}`
+      );
     }
 
     throw err;
