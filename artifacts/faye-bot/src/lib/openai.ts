@@ -36,10 +36,10 @@ function getFallback(): string {
 const TIMEOUT_MS = 15000;
 
 export async function getFayeResponse(userMessage: string, username: string): Promise<string> {
-  if (!openai) {
-    console.warn("getFayeResponse called but AI client not initialised");
-    return getFallback();
-  }
+if (!openai) {
+  console.warn("getFayeResponse called but AI client not initialised");
+  throw new Error("AI client not initialised");
+}
 
   const timeoutPromise = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error("AI_TIMEOUT")), TIMEOUT_MS)
