@@ -4,6 +4,7 @@ import { updateStickyMessage } from "../lib/stickyManager";
 import { db, stickyMessages } from "../lib/database";
 import { eq } from "drizzle-orm";
 import { getRecentConversation, saveConversationMessage } from "../lib/memory";
+import { getUserMemories, saveUserMemory } from "../lib/userMemory";
 
 const PREFIX = "!f";
 const cooldowns = new Map<string, number>();
@@ -30,14 +31,31 @@ async function handleFayeMessage(
 
   cooldowns.set(userId, now);
 
-  if (!content) {
-    await message.reply("You called for me? 🌿 Ask me anything — I'm here to help.");
-    return;
-  }
+  await message.reply("You called for me? 🌿 Ask me anything — I'm here to help.");
+  return;
+}
 
-  if ("sendTyping" in message.channel) {
-    await message.channel.sendTyping();
-  }
+const lowerContent = content.toLowerCase();
+
+if (lowerContent.startsWith("remember that ")) {
+  const memory = content.slice("remember that ".length).trim();
+
+  await saveUserMemory(
+    message.author.id,
+    message.author.username,
+    memory
+  );
+
+  await message.reply(
+    "I'll tuck that memory safely into the garden, dear traveler. 🌿"
+  );
+
+  return;
+}
+
+if ("sendTyping" in message.channel) {
+  await message.channel.sendTyping();
+}
 
   try {
     await saveConversationMessage(
