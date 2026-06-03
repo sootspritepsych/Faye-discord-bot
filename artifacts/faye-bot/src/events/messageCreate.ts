@@ -3,6 +3,7 @@ import { getFayeResponse } from "../lib/openai";
 import { updateStickyMessage } from "../lib/stickyManager";
 import { db, stickyMessages } from "../lib/database";
 import { eq } from "drizzle-orm";
+import { getRecentConversation, saveConversationMessage } from "../lib/memory";
 
 const PREFIX = "!f";
 const cooldowns = new Map<string, number>();
@@ -28,8 +29,31 @@ async function handleFayeMessage(message: Message, content: string) {
   if ("sendTyping" in message.channel) await message.channel.sendTyping();
 
   try {
-    const response = await getFayeResponse(content, message.author.username);
+    await saveConversationMessage(
+  message.channel.id,
+  message.author.id,
+  message.author.username,
+  "user",
+  content
+);
+
+const recentMessages = await getRecentConversation(message.channel.id);
+
+const response = await getFayeResponse(
+  content,
+  message.author.username,
+  recentMessages
+);
+
 await message.reply(response);
+
+await saveConversationMessage(
+  message.channel.id,
+  client.user?.id ?? "faye",
+  "Faye",
+  "assistant",
+  response
+);
   } catch (err) {
     console.error("Error getting Faye response:", err);
     await message.reply("The garden winds are restless right now... try again in a moment. 🍃");
