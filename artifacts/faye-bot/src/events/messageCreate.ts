@@ -11,120 +11,112 @@ const cooldowns = new Map<string, number>();
 const COOLDOWN_MS = 5000;
 
 async function handleFayeMessage(
-  client: Client,
-  message: Message,
-  content: string
+client: Client,
+message: Message,
+content: string
 ) {
+console.log(
+🌱 HANDLE_FAYE_MESSAGE | msg=${message.id} | user=${message.author.username}
+);
 
-  console.log(
-    `🌱 HANDLE_FAYE_MESSAGE | msg=${message.id} | user=${message.author.username}`
-  );
+const userId = message.author.id;
+const now = Date.now();
+const lastUsed = cooldowns.get(userId) ?? 0;
 
-  const userId = message.author.id;
-  const now = Date.now();
-  const lastUsed = cooldowns.get(userId) ?? 0;
+if (now - lastUsed < COOLDOWN_MS) {
+await message.react("🍃");
+return;
+}
 
-  if (now - lastUsed < COOLDOWN_MS) {
-    await message.react("🍃");
-    return;
-  }
-
-  cooldowns.set(userId, now);
+cooldowns.set(userId, now);
 
 if (!content) {
-  await message.reply(
-    "You called for me? 🌿 Ask me anything — I'm here to help."
-  );
-  return;
+await message.reply(
+"You called for me? 🌿 Ask me anything — I'm here to help."
+);
+return;
 }
 
 const lowerContent = content.toLowerCase();
 
-console.log(`CONTENT_RECEIVED: ${content}`);
-  
+console.log(CONTENT_RECEIVED: ${content});
+
+// Explicit memory command
 if (lowerContent.startsWith("remember that ")) {
-  const memory = content.slice("remember that ".length).trim();
+const memory = content.slice("remember that ".length).trim();
 
-  await saveUserMemory(
-    message.author.id,
-    message.author.username,
-    memory
-  );
+await saveUserMemory(
+  message.author.id,
+  message.author.username,
+  memory
+);
 
-  await message.reply(
-    "I'll tuck that memory safely into the garden, dear traveler. 🌿"
-  );
+await message.reply(
+  "I'll tuck that memory safely into the garden, dear traveler. 🌿"
+);
 
-  return;
+return;
+
 }
 
-// natural memory block goes HERE
+// Natural memory detection
 const naturalMemoryPatterns = [
-  "my favorite ",
-  "my favourite ",
-  "i like ",
-  "i love ",
-  "my dog is ",
-  "my cat is ",
-  "my pet is ",
-  "my name is ",
-  "i am ",
-  "i'm ",
+"my favorite ",
+"my favourite ",
+"i like ",
+"i love ",
+"my dog is ",
+"my cat is ",
+"my pet is ",
+"my name is ",
+"i am ",
+"i'm ",
 ];
 
 const shouldSaveNaturalMemory = naturalMemoryPatterns.some((pattern) =>
-  lowerContent.includes(pattern)
+lowerContent.includes(pattern)
 );
 
-console.log(`MEMORY_CHECK=${shouldSaveNaturalMemory} | content=${content}`);
+console.log(
+MEMORY_CHECK=${shouldSaveNaturalMemory} | content=${content}
+);
 
 if (shouldSaveNaturalMemory && content.length <= 200) {
-  await saveUserMemory(
-    message.author.id,
-    message.author.username,
-    content
-  );
+await saveUserMemory(
+message.author.id,
+message.author.username,
+content
+);
 
-  console.log(
-    `🧠 Natural memory saved for ${message.author.username}: ${content}`
-  );
-}
-  const memory = content.slice("remember that ".length).trim();
+console.log(
+  `🧠 Natural memory saved for ${message.author.username}: ${content}`
+);
 
-  await saveUserMemory(
-    message.author.id,
-    message.author.username,
-    memory
-  );
-
-  await message.reply(
-    "I'll tuck that memory safely into the garden, dear traveler. 🌿"
-  );
-
-  return;
 }
 
 if ("sendTyping" in message.channel) {
-  await message.channel.sendTyping();
+await message.channel.sendTyping();
 }
 
-  try {
-    await saveConversationMessage(
-      message.channel.id,
-      message.author.id,
-      message.author.username,
-      "user",
-      content
-    );
+try {
+await saveConversationMessage(
+message.channel.id,
+message.author.id,
+message.author.username,
+"user",
+content
+);
 
-   const recentMessages = await getRecentConversation(message.channel.id);
-
-console.log(
-  `🤖 CALLING_OPENAI | msg=${message.id}`
+const recentMessages = await getRecentConversation(
+  message.channel.id
 );
 
 const userMemories = await getUserMemories(
   message.author.id
+);
+
+console.log(
+  `🤖 CALLING_OPENAI | msg=${message.id}`
 );
 
 const response = await getFayeResponse(
@@ -134,19 +126,24 @@ const response = await getFayeResponse(
   userMemories
 );
 
-    await message.reply(response);
+await message.reply(response);
 
-    await saveConversationMessage(
-      message.channel.id,
-      client.user?.id ?? "faye",
-      "Faye",
-      "assistant",
-      response
-    );
-  } catch (err) {
-    console.error("Error getting Faye response:", err);
-    await message.reply("The garden winds are restless right now... try again in a moment. 🍃");
-  }
+await saveConversationMessage(
+  message.channel.id,
+  client.user?.id ?? "faye",
+  "Faye",
+  "assistant",
+  response
+);
+
+} catch (err) {
+console.error("Error getting Faye response:", err);
+
+await message.reply(
+  "The garden winds are restless right now... try again in a moment. 🍃"
+);
+
+}
 }
 
 export default function registerMessageCreateEvent(client: Client) {
