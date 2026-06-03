@@ -1,40 +1,39 @@
-import { db } from "./database";
-import { sql } from "drizzle-orm";
+import { db, conversationHistory } from "./database";
+import { desc, eq } from "drizzle-orm";
 
-export type MemoryMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-export async function saveConversationMessage(
+export async function saveMemory(
   channelId: string,
   userId: string,
   username: string,
   role: "user" | "assistant",
   content: string
 ) {
-  await db.execute(sql`
-    INSERT INTO conversation_history (channel_id, user_id, username, role, content)
-    VALUES (${channelId}, ${userId}, ${username}, ${role}, ${content})
-  `);
+  try {
+    await db.insert(conversationHistory).values({
+      channelId,
+      userId,
+      username,
+      role,
+      content,
+    });
+  } catch (err) {
+    console.error("Memory save failed:", err);
+  }
 }
 
-export async function getRecentConversation(channelId: string): Promise<MemoryMessage[]> {
-  const result = await db.execute(sql`
-    SELECT role, username, content
-    FROM conversation_history
-    WHERE channel_id = ${channelId}
-    ORDER BY created_at DESC
-    LIMIT 10
-  `);
-
-  return result.rows
-    .reverse()
-    .map((row: any) => ({
-      role: row.role as "user" | "assistant",
-      content:
-        row.role === "user"
-          ? `${row.username}: ${row.content}`
-          : row.content,
-    }));
+export async function getRecentMemory(
+  channelId: string,
+  limit = 10
+) {
+  try {
+    return await db
+      .select()
+      .from(conversationHistory)
+      .where(eq(conversationHistory.channelId, channelId))
+      .orderBy(desc(conversationHistory.createdAt))
+      .limit(limit);
+  } catch (err) {
+    console.error("Memory lookup failed:", err);
+    return [];
+  }
 }
