@@ -27,7 +27,7 @@ export async function getFayeResponse(
   userMessage: string,
   username: string,
   recentMessages: MemoryMessage[] = []
-  const memories = await getRecentMemory(channelId, 10);
+): Promise<string> {
 
 const memoryText = memories
   .reverse()
