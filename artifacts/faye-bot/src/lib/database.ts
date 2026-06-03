@@ -217,29 +217,34 @@ export async function initDb() {
       sent BOOLEAN DEFAULT FALSE,
       sent_at TIMESTAMP
     );
-await db.execute(sql`
-  CREATE TABLE IF NOT EXISTS conversation_history (
-    id SERIAL PRIMARY KEY,
-    channel_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    username TEXT NOT NULL,
-    role TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-    -- Migrations for existing tables
+
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
+
     ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
+
     ALTER TABLE faye_reminders ADD COLUMN IF NOT EXISTS event_name TEXT;
+
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_channel_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_hour INTEGER DEFAULT 9;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_channel_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_post_hour INTEGER DEFAULT 8;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS conversation_history (
+      id SERIAL PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   console.log("🌿 Faye database tables initialized");
 }
