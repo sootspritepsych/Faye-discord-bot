@@ -31,7 +31,10 @@ async function handleFayeMessage(
 
   cooldowns.set(userId, now);
 
-  await message.reply("You called for me? 🌿 Ask me anything — I'm here to help.");
+if (!content) {
+  await message.reply(
+    "You called for me? 🌿 Ask me anything — I'm here to help."
+  );
   return;
 }
 
@@ -72,10 +75,15 @@ console.log(
   `🤖 CALLING_OPENAI | msg=${message.id}`
 );
 
+const userMemories = await getUserMemories(
+  message.author.id
+);
+
 const response = await getFayeResponse(
   content,
   message.author.username,
-  recentMessages
+  recentMessages,
+  userMemories
 );
 
     await message.reply(response);
