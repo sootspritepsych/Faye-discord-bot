@@ -29,7 +29,7 @@ async function handleFayeMessage(message: Message, content: string) {
   if ("sendTyping" in message.channel) await message.channel.sendTyping();
 
   try {
-    await saveConversationMessage(
+await saveConversationMessage(
   message.channel.id,
   message.author.id,
   message.author.username,
