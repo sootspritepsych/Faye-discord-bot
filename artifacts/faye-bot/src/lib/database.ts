@@ -217,7 +217,17 @@ export async function initDb() {
       sent BOOLEAN DEFAULT FALSE,
       sent_at TIMESTAMP
     );
-
+await db.execute(sql`
+  CREATE TABLE IF NOT EXISTS conversation_history (
+    id SERIAL PRIMARY KEY,
+    channel_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    username TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
     -- Migrations for existing tables
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
