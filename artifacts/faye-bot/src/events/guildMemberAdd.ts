@@ -1,46 +1,30 @@
-import { Client, Events, GuildMember, TextChannel, ChannelType } from "discord.js";
-import { db, guildConfig, welcomeJourneys } from "../lib/database";
-import { eq } from "drizzle-orm";
+const mainChat = "<#1351497163447734294>";
+const introChannel = "<#1361049562420084837>";
+const selfieChannel = "<#1387139609292570634>";
+const rulesChannel = "<#1436270082727743589>";
+const petChannel = "<#1354650018765733998>";
 
-export default function registerGuildMemberAddEvent(client: Client) {
-  client.on(Events.GuildMemberAdd, async (member: GuildMember) => {
-    try {
-      const [config] = await db
-        .select()
-        .from(guildConfig)
-        .where(eq(guildConfig.guildId, member.guild.id));
+const [config] = await db
+  .select()
+  .from(guildConfig)
+  .where(eq(guildConfig.guildId, member.guild.id));
 
-      const dmMessage =
-        `🌿 Hello and welcome to **Garden of Harmony**!\n\n` +
-        `My name is **Faye**, the guardian spirit of this garden.\n\n` +
-        `Feel free to introduce yourself, grab some roles, read the rules, and make yourself at home.\n\n` +
-        `If you need help, our staff gardeners are always happy to assist.\n\n` +
-        `May your path here be cozy and kind.\n\n` +
-        `— Faye ✨`;
+const dmMessage =
+  `🌿 Hello and welcome to **Garden of Harmony**!\n\n` +
+  `My name is **Faye**, the guardian spirit of this garden. 🍃\n\n` +
+  `Thank you for completing onboarding and joining our little corner of the forest.\n\n` +
+  `Here are a few places to explore:\n\n` +
+  `🌱 **Main Chat:** ${mainChat}\n` +
+  `🍄 **Introductions:** ${introChannel}\n` +
+  `📸 **Selfies:** ${selfieChannel}\n` +
+  `🐾 **Pet Grove:** ${petChannel}\n` +
+  `📜 **Rules:** ${rulesChannel}\n\n` +
+  `💚 If you ever need assistance, have questions, or aren't sure where to start, simply mention **@Faye Guides** in the server and a staff gardener will be happy to help.\n\n` +
+  `May your path here be cozy, kind, and full of new friendships.\n\n` +
+  `— Faye ✨`;
 
-      try {
-        await member.send(dmMessage);
-      } catch {
-        // DMs closed — fall through to welcome channel
-      }
-
-      if (config?.welcomeChannelId) {
-        const channel = await client.channels.fetch(config.welcomeChannelId);
-        if (channel && channel.type === ChannelType.GuildText) {
-          await (channel as TextChannel).send(
-            `🌸 Welcome <@${member.user.id}> to Garden of Harmony.\n\nFaye's lantern has guided a new traveler into the garden.`
-          );
-        }
-      }
-
-      // Record welcome journey for 24h follow-up
-      await db.insert(welcomeJourneys).values({
-        guildId: member.guild.id,
-        userId: member.user.id,
-        joinTime: new Date(),
-      });
-    } catch (err) {
-      console.error("Error handling guildMemberAdd:", err);
-    }
-  });
+try {
+  await member.send(dmMessage);
+} catch {
+  // DMs closed — fall through to welcome channel
 }
