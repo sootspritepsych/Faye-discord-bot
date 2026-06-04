@@ -6,7 +6,7 @@ export default function registerGuildMemberAddEvent(client: Client) {
   client.on(Events.GuildMemberAdd, async (member: GuildMember) => {
     try {
       const mainChat = "<#1351497163447734294>";
-      const introChannel = "<#1361049562420084837>";
+      const introChannel = "<#1353073991446691890>";
       const selfieChannel = "<#1387139609292570634>";
       const petChannel = "<#1354650018765733998>";
       const rulesChannel = "<#1436270082727743589>";
