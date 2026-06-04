@@ -35,3 +35,24 @@ export default function registerGuildMemberAddEvent(client: Client) {
       } catch {
         // DMs closed — fall through to welcome channel
       }
+
+      if (config?.welcomeChannelId) {
+        const channel = await client.channels.fetch(config.welcomeChannelId);
+
+        if (channel && channel.type === ChannelType.GuildText) {
+          await (channel as TextChannel).send(
+            `🌸 Welcome <@${member.user.id}> to Garden of Harmony.\n\nFaye's lantern has guided a new traveler into the garden.`
+          );
+        }
+      }
+
+      await db.insert(welcomeJourneys).values({
+        guildId: member.guild.id,
+        userId: member.user.id,
+        joinTime: new Date(),
+      });
+    } catch (err) {
+      console.error("Error handling guildMemberAdd:", err);
+    }
+  });
+}
