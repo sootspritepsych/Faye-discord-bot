@@ -99,6 +99,10 @@ export const welcomeJourneys = pgTable("faye_welcome_journeys", {
 export const guildConfig = pgTable("faye_guild_config", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull().unique(),
+
+  staffRoleId: text("staff_role_id"),
+  announcementChannelId: text("announcement_channel_id"),
+
   confessionsChannelId: text("confessions_channel_id"),
   suggestionsChannelId: text("suggestions_channel_id"),
   qotdModChannelId: text("qotd_mod_channel_id"),
@@ -134,6 +138,8 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS faye_guild_config (
       id SERIAL PRIMARY KEY,
       guild_id TEXT NOT NULL UNIQUE,
+      staff_role_id TEXT,
+      announcement_channel_id TEXT,
       confessions_channel_id TEXT,
       suggestions_channel_id TEXT,
       qotd_mod_channel_id TEXT,
@@ -143,7 +149,7 @@ export async function initDb() {
       wisdom_channel_id TEXT,
       wisdom_post_hour INTEGER DEFAULT 8,
       updated_at TIMESTAMP DEFAULT NOW()
-    );
+);
 
     CREATE TABLE IF NOT EXISTS faye_sticky_messages (
       id SERIAL PRIMARY KEY,
@@ -258,6 +264,8 @@ export async function initDb() {
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_channel_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_post_hour INTEGER DEFAULT 8;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
+    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS staff_role_id TEXT;
+    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS announcement_channel_id TEXT;
   `);
 
   await pool.query(`
