@@ -12,6 +12,7 @@ import * as wisdom from "./wisdom";
 import * as modlog from "./modlog";
 import * as warn from "./warn";
 import * as warnings from "./warnings";
+import * as timestamp from "./timestamp";
 
 export interface Command {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,7 +23,7 @@ export interface Command {
 const commandList: Command[] = [
   confess, suggest, qotd, sticky, reminder, setup,
   faye, help, about, wisdom,
-  modlog, warn, warnings,
+  modlog, warn, warnings,timestamp
 ];
 
 export const commands = new Collection<string, Command>();
