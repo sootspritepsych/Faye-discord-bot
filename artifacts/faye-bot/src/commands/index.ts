@@ -23,7 +23,7 @@ export interface Command {
 const commandList: Command[] = [
   confess, suggest, qotd, sticky, reminder, setup,
   faye, help, about, wisdom,
-  modlog, warn, warnings,timestamp
+  modlog, warn, warnings,timestamp,
 ];
 
 export const commands = new Collection<string, Command>();
