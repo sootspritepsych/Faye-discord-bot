@@ -2,7 +2,7 @@ import {
   ChatInputCommandInteraction,
   SlashCommandBuilder,
 } from "discord.js";
-import { pool } from "./lib/database";
+import { pool } from "../lib/database";
 
 export const data = new SlashCommandBuilder()
   .setName("vcactive")
