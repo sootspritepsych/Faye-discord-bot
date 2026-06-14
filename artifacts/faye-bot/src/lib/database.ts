@@ -1,9 +1,29 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { pgTable, serial, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  boolean,
+  integer,
+} from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
 export const db = drizzle(pool);
+
+export const voiceSessions = pgTable("voice_sessions", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  channelId: text("channel_id").notNull(),
+  joinedAt: timestamp("joined_at").notNull(),
+  leftAt: timestamp("left_at"),
+  durationSeconds: integer("duration_seconds"),
+});
 
 export const stickyMessages = pgTable("faye_sticky_messages", {
   id: serial("id").primaryKey(),
@@ -135,6 +155,16 @@ export const userMemories = pgTable("faye_user_memories", {
 
 export async function initDb() {
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS voice_sessions (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      joined_at TIMESTAMP NOT NULL,
+      left_at TIMESTAMP,
+      duration_seconds INTEGER
+    );
+
     CREATE TABLE IF NOT EXISTS faye_guild_config (
       id SERIAL PRIMARY KEY,
       guild_id TEXT NOT NULL UNIQUE,
@@ -149,7 +179,7 @@ export async function initDb() {
       wisdom_channel_id TEXT,
       wisdom_post_hour INTEGER DEFAULT 8,
       updated_at TIMESTAMP DEFAULT NOW()
-);
+    );
 
     CREATE TABLE IF NOT EXISTS faye_sticky_messages (
       id SERIAL PRIMARY KEY,
@@ -241,14 +271,25 @@ export async function initDb() {
       sent BOOLEAN DEFAULT FALSE,
       sent_at TIMESTAMP
     );
-    
+
     CREATE TABLE IF NOT EXISTS faye_user_memories (
       id SERIAL PRIMARY KEY,
       user_id TEXT NOT NULL,
       username TEXT NOT NULL,
       memory TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
-);
+    );
+
+    CREATE TABLE IF NOT EXISTS conversation_history (
+      id SERIAL PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
@@ -265,18 +306,6 @@ export async function initDb() {
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS staff_role_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS announcement_channel_id TEXT;
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS conversation_history (
-      id SERIAL PRIMARY KEY,
-      channel_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
-      username TEXT NOT NULL,
-      role TEXT NOT NULL,
-      content TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
   `);
 
   console.log("🌿 Faye database tables initialized");
