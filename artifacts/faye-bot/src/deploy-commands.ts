@@ -18,9 +18,9 @@ async function deployCommands() {
   try {
     if (guildId) {
       // Guild-specific (instant, for testing)
-      await rest.put(Routes.applicationGuildCommands(clientId!, guildId), {
-        body: commandsArray,
-      });
+      await rest.put(Routes.applicationCommands(clientId!), {
+        body: [],
+  });
       console.log(`✅ Registered ${commandsArray.length} commands to guild ${guildId}`);
     } else {
       // Global (takes up to 1 hour to propagate)
