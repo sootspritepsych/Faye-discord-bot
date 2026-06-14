@@ -24,9 +24,9 @@ async function deployCommands() {
       console.log(`✅ Registered ${commandsArray.length} commands to guild ${guildId}`);
     } else {
       // Global (takes up to 1 hour to propagate)
-      await rest.put(Routes.applicationCommands(clientId!), {
-        body: commandsArray,
-      });
+await rest.put(Routes.applicationGuildCommands(clientId!, guildId), {
+  body: commandsArray,
+});
       console.log(`✅ Registered ${commandsArray.length} commands globally`);
     }
   } catch (err) {
