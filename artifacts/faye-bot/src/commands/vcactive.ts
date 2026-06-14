@@ -27,20 +27,27 @@ export async function execute(
     return;
   }
 
-  const result = await pool.query(
-    `
-    SELECT
-      user_id,
-      COALESCE(SUM(duration_seconds),0) AS total_seconds
-    FROM voice_sessions
-    WHERE guild_id = $1
-      AND channel_id = $2
-      AND DATE(joined_at) = CURRENT_DATE
-    GROUP BY user_id
-    ORDER BY total_seconds DESC
-    `,
-    [interaction.guildId, channel.id]
-  );
+const result = await pool.query(
+  `
+  SELECT
+    user_id,
+    SUM(
+      EXTRACT(EPOCH FROM (
+        LEAST(COALESCE(left_at, NOW()), CURRENT_DATE + INTERVAL '1 day')
+        -
+        GREATEST(joined_at, CURRENT_DATE)
+      ))
+    )::INT AS total_seconds
+  FROM voice_sessions
+  WHERE guild_id = $1
+    AND channel_id = $2
+    AND joined_at < CURRENT_DATE + INTERVAL '1 day'
+    AND COALESCE(left_at, NOW()) > CURRENT_DATE
+  GROUP BY user_id
+  ORDER BY total_seconds DESC
+  `,
+  [interaction.guildId, channel.id],
+);
 
   if (result.rows.length === 0) {
     await interaction.reply(
