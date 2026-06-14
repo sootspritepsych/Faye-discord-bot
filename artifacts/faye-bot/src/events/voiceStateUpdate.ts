@@ -1,5 +1,5 @@
 import { Client, VoiceState } from "discord.js";
-import { query } from "../lib/database";
+import { pool } from "../lib/database";
 
 export default function registerVoiceStateUpdateEvent(client: Client) {
   client.on("voiceStateUpdate", async (oldState: VoiceState, newState: VoiceState) => {
@@ -10,9 +10,8 @@ export default function registerVoiceStateUpdateEvent(client: Client) {
       const oldChannelId = oldState.channelId;
       const newChannelId = newState.channelId;
 
-      // Joined any voice channel
       if (!oldChannelId && newChannelId) {
-        await query(
+        await pool.query(
           `INSERT INTO voice_sessions 
            (guild_id, user_id, channel_id, joined_at)
            VALUES ($1, $2, $3, NOW())`,
@@ -20,16 +19,14 @@ export default function registerVoiceStateUpdateEvent(client: Client) {
         );
       }
 
-      // Left any voice channel
       if (oldChannelId && !newChannelId) {
         await closeOpenSession(guildId, userId, oldChannelId);
       }
 
-      // Switched voice channels
       if (oldChannelId && newChannelId && oldChannelId !== newChannelId) {
         await closeOpenSession(guildId, userId, oldChannelId);
 
-        await query(
+        await pool.query(
           `INSERT INTO voice_sessions 
            (guild_id, user_id, channel_id, joined_at)
            VALUES ($1, $2, $3, NOW())`,
@@ -42,12 +39,8 @@ export default function registerVoiceStateUpdateEvent(client: Client) {
   });
 }
 
-async function closeOpenSession(
-  guildId: string,
-  userId: string,
-  channelId: string
-) {
-  await query(
+async function closeOpenSession(guildId: string, userId: string, channelId: string) {
+  await pool.query(
     `UPDATE voice_sessions
      SET left_at = NOW(),
          duration_seconds = EXTRACT(EPOCH FROM (NOW() - joined_at))::INT
