@@ -4,6 +4,7 @@ import registerReadyEvent from "./events/ready";
 import registerGuildMemberAddEvent from "./events/guildMemberAdd";
 import registerMessageCreateEvent from "./events/messageCreate";
 import registerInteractionCreateEvent from "./events/interactionCreate";
+import registerVoiceStateUpdateEvent from "./events/voiceStateUpdate";
 
 const token = process.env.DISCORD_BOT_TOKEN;
 
@@ -31,6 +32,7 @@ async function main() {
   registerGuildMemberAddEvent(client);
   registerMessageCreateEvent(client);
   registerInteractionCreateEvent(client);
+  registerVoiceStateUpdateEvent(client);
 
   await client.login(token);
 }
