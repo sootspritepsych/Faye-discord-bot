@@ -249,7 +249,15 @@ export async function initDb() {
       memory TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
 );
-
+    CREATE TABLE voice_sessions (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      joined_at TIMESTAMP NOT NULL,
+      left_at TIMESTAMP,
+      duration_seconds INTEGER
+);
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
