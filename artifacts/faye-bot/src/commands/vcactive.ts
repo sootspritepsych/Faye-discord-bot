@@ -2,15 +2,15 @@ import {
   ChatInputCommandInteraction,
   SlashCommandBuilder,
 } from "discord.js";
-import { pool } from "../lib/database";
+import { pool } from "./lib/database";
 
 export const data = new SlashCommandBuilder()
   .setName("vcactive")
-  .setDescription("Shows today's voice activity for a voice channel")
+  .setDescription("Show today's voice activity for a voice channel")
   .addChannelOption((option) =>
     option
       .setName("channel")
-      .setDescription("Voice channel")
+      .setDescription("Voice channel to check")
       .setRequired(true)
   );
 
@@ -31,7 +31,7 @@ export async function execute(
     `
     SELECT
       user_id,
-      SUM(duration_seconds) AS total_seconds
+      COALESCE(SUM(duration_seconds),0) AS total_seconds
     FROM voice_sessions
     WHERE guild_id = $1
       AND channel_id = $2
@@ -44,7 +44,7 @@ export async function execute(
 
   if (result.rows.length === 0) {
     await interaction.reply(
-      `No voice activity found today for <#${channel.id}>.`
+      `No voice activity recorded today for <#${channel.id}>.`
     );
     return;
   }
@@ -52,7 +52,7 @@ export async function execute(
   let output = `🎤 Voice Activity Today\n<#${channel.id}>\n\n`;
 
   for (const row of result.rows) {
-    const seconds = Number(row.total_seconds || 0);
+    const seconds = Number(row.total_seconds);
 
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
