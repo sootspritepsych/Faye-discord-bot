@@ -1,4 +1,8 @@
-import { Client, TextChannel, ChannelType, EmbedBuilder } from "discord.js";
+import {
+  Client,
+  EmbedBuilder,
+  TextBasedChannel,
+} from "discord.js";
 import { db, stickyMessages } from "./database";
 import { eq } from "drizzle-orm";
 
@@ -7,38 +11,43 @@ export async function updateStickyMessage(
   channelId: string
 ) {
   try {
+    console.log("Checking sticky for channel:", channelId);
+
     const [sticky] = await db
       .select()
       .from(stickyMessages)
       .where(eq(stickyMessages.channelId, channelId));
 
-    if (!sticky) return;
+    if (!sticky) {
+      console.log("No sticky found for channel:", channelId);
+      return;
+    }
 
     const channel = await client.channels.fetch(channelId);
 
-    if (!channel || channel.type !== ChannelType.GuildText) return;
+    if (!channel || !channel.isTextBased() || !("send" in channel)) {
+      console.log("Sticky skipped: channel is not a sendable text channel", channelId);
+      return;
+    }
 
-    const textChannel = channel as TextChannel;
+    const textChannel = channel as TextBasedChannel & {
+      send: Function;
+      messages: any;
+    };
 
-    // Delete previous sticky
     if (sticky.lastMessageId) {
       try {
-        const oldMessage = await textChannel.messages.fetch(
-          sticky.lastMessageId
-        );
-
-        if (oldMessage) {
-          await oldMessage.delete();
-        }
+        const oldMessage = await textChannel.messages.fetch(sticky.lastMessageId);
+        await oldMessage.delete();
       } catch {
-        // Message already deleted
+        console.log("Old sticky already deleted or unavailable.");
       }
     }
 
-    // Convert literal "\n" into real line breaks
     const formattedContent = sticky.content
       .replace(/\\n/g, "\n")
-      .replace(/\r\n/g, "\n");
+      .replace(/\r\n/g, "\n")
+      .trim();
 
     const embed = new EmbedBuilder()
       .setDescription(formattedContent)
@@ -58,9 +67,7 @@ export async function updateStickyMessage(
       })
       .where(eq(stickyMessages.channelId, channelId));
 
-    console.log(
-      `Sticky updated in #${textChannel.name} (${textChannel.id})`
-    );
+    console.log(`Sticky updated in channel ${channelId}`);
   } catch (err) {
     console.error("Error updating sticky message:", err);
   }
