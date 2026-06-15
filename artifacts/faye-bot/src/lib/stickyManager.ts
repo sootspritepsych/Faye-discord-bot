@@ -6,6 +6,13 @@ import {
 import { db, stickyMessages } from "./database";
 import { eq } from "drizzle-orm";
 
+type SendableTextChannel = TextBasedChannel & {
+  send: (options: any) => Promise<any>;
+  messages: {
+    fetch: (messageId: string) => Promise<any>;
+  };
+};
+
 export async function updateStickyMessage(
   client: Client,
   channelId: string
@@ -23,24 +30,29 @@ export async function updateStickyMessage(
       return;
     }
 
+    console.log("Sticky found for channel:", channelId);
+
     const channel = await client.channels.fetch(channelId);
 
-    if (!channel || !channel.isTextBased() || !("send" in channel)) {
-      console.log("Sticky skipped: channel is not a sendable text channel", channelId);
+    if (!channel) {
+      console.log("Sticky skipped: channel not found", channelId);
       return;
     }
 
-    const textChannel = channel as TextBasedChannel & {
-      send: Function;
-      messages: any;
-    };
+    if (!channel.isTextBased() || !("send" in channel) || !("messages" in channel)) {
+      console.log("Sticky skipped: channel is not sendable", channelId);
+      return;
+    }
+
+    const textChannel = channel as SendableTextChannel;
 
     if (sticky.lastMessageId) {
       try {
         const oldMessage = await textChannel.messages.fetch(sticky.lastMessageId);
         await oldMessage.delete();
-      } catch {
-        console.log("Old sticky already deleted or unavailable.");
+        console.log("Old sticky deleted:", sticky.lastMessageId);
+      } catch (err) {
+        console.log("Old sticky could not be deleted. Continuing anyway.");
       }
     }
 
@@ -67,7 +79,7 @@ export async function updateStickyMessage(
       })
       .where(eq(stickyMessages.channelId, channelId));
 
-    console.log(`Sticky updated in channel ${channelId}`);
+    console.log("Sticky updated successfully:", newMessage.id);
   } catch (err) {
     console.error("Error updating sticky message:", err);
   }
