@@ -39,8 +39,6 @@ async function handleFayeMessage(
 
   const lowerContent = content.toLowerCase();
 
-  console.log(`CONTENT_RECEIVED: ${content}`);
-
   if (lowerContent.startsWith("remember that ")) {
     const memory = content.slice("remember that ".length).trim();
 
@@ -74,17 +72,11 @@ async function handleFayeMessage(
     lowerContent.includes(pattern)
   );
 
-  console.log(`MEMORY_CHECK=${shouldSaveNaturalMemory} | content=${content}`);
-
   if (shouldSaveNaturalMemory && content.length <= 200) {
     await saveUserMemory(
       message.author.id,
       message.author.username,
       content
-    );
-
-    console.log(
-      `Natural memory saved for ${message.author.username}: ${content}`
     );
   }
 
@@ -103,8 +95,6 @@ async function handleFayeMessage(
 
     const recentMessages = await getRecentConversation(message.channel.id);
     const userMemories = await getUserMemories(message.author.id);
-
-    console.log(`CALLING_OPENAI | msg=${message.id}`);
 
     const response = await getFayeResponse(
       content,
@@ -129,31 +119,53 @@ async function handleFayeMessage(
 }
 
 export default function registerMessageCreateEvent(client: Client) {
+  console.log("REGISTERING messageCreate event");
+
   client.on(Events.MessageCreate, async (message: Message) => {
-    if (message.author.bot) return;
+    try {
+      console.log("MESSAGE CREATE FIRED:", {
+        messageId: message.id,
+        channelId: message.channelId,
+        author: message.author.username,
+        isBot: message.author.bot,
+        content: message.content,
+      });
 
-    const [sticky] = await db
-      .select()
-      .from(stickyMessages)
-      .where(eq(stickyMessages.channelId, message.channelId));
+      if (message.author.bot) return;
 
-    if (sticky && message.id !== sticky.lastMessageId) {
-      setTimeout(() => updateStickyMessage(client, message.channelId), 1000);
-    }
+      console.log("CHECKING STICKY TABLE FOR:", message.channelId);
 
-    if (message.content.toLowerCase().startsWith(PREFIX)) {
-      const content = message.content.slice(PREFIX.length).trim();
-      await handleFayeMessage(client, message, content);
-      return;
-    }
+      const [sticky] = await db
+        .select()
+        .from(stickyMessages)
+        .where(eq(stickyMessages.channelId, message.channelId));
 
-    if (client.user && message.mentions.has(client.user)) {
-      const content = message.content
-        .replace(`<@${client.user.id}>`, "")
-        .replace(`<@!${client.user.id}>`, "")
-        .trim();
+      console.log("STICKY RESULT:", sticky);
 
-      await handleFayeMessage(client, message, content);
+      if (sticky && message.id !== sticky.lastMessageId) {
+        console.log("TRIGGERING STICKY UPDATE FOR:", message.channelId);
+
+        setTimeout(() => {
+          updateStickyMessage(client, message.channelId);
+        }, 1000);
+      }
+
+      if (message.content.toLowerCase().startsWith(PREFIX)) {
+        const content = message.content.slice(PREFIX.length).trim();
+        await handleFayeMessage(client, message, content);
+        return;
+      }
+
+      if (client.user && message.mentions.has(client.user)) {
+        const content = message.content
+          .replace(`<@${client.user.id}>`, "")
+          .replace(`<@!${client.user.id}>`, "")
+          .trim();
+
+        await handleFayeMessage(client, message, content);
+      }
+    } catch (err) {
+      console.error("ERROR INSIDE messageCreate:", err);
     }
   });
 }
