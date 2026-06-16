@@ -153,6 +153,13 @@ export const userMemories = pgTable("faye_user_memories", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const natureFacts = pgTable("nature_facts", {
+  id: serial("id").primaryKey(),
+  category: text("category").notNull(),
+  fact: text("fact").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS voice_sessions (
