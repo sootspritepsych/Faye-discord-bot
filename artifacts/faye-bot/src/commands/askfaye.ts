@@ -36,18 +36,23 @@ export const data = new SlashCommandBuilder()
       .setRequired(true)
   );
 
-export async function execute(interaction: ChatInputCommandInteraction) {
+export async function execute(
+  interaction: ChatInputCommandInteraction
+): Promise<void> {
   const question = interaction.options.getString("question", true);
 
   const roll = Math.random();
   let response: string;
 
   if (roll < 0.08) {
-    response = rareResponses[Math.floor(Math.random() * rareResponses.length)];
+    response =
+      rareResponses[Math.floor(Math.random() * rareResponses.length)];
   } else if (roll < 0.45) {
-    response = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
+    response =
+      funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
   } else {
-    response = wiseResponses[Math.floor(Math.random() * wiseResponses.length)];
+    response =
+      wiseResponses[Math.floor(Math.random() * wiseResponses.length)];
   }
 
   const embed = new EmbedBuilder()
@@ -55,15 +60,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     .setTitle("🎱 Ask Faye")
     .addFields(
       {
-        name: "Your question",
+        name: "Your Question",
         value: question,
       },
       {
-        name: "Faye says",
+        name: "Faye Says",
         value: response,
       }
     )
-    .setFooter({ text: "The garden has spoken 🌿" });
+    .setFooter({
+      text: "The garden has spoken 🌿",
+    });
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({
+    embeds: [embed],
+  });
 }
