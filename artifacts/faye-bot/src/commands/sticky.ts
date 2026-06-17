@@ -55,57 +55,51 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     }
   }
 
-if (sub === "set") {
-  const rawContent = interaction.options.getString("message", true);
-  const content = formatStickyContent(rawContent);
+  if (sub === "set") {
+    const rawContent = interaction.options.getString("message", true);
+    const content = formatStickyContent(rawContent);
 
-  console.log("🌿 STICKY SET COMMAND RUNNING");
-  console.log("DATABASE_URL exists?", !!process.env.DATABASE_URL);
-  console.log("Channel ID:", interaction.channelId);
-  console.log("Content preview:", content.slice(0, 100));
+    console.log("🌿 STICKY SET COMMAND RUNNING");
+    console.log("DATABASE_URL exists?", !!process.env.DATABASE_URL);
+    console.log("Channel ID:", interaction.channelId);
+    console.log("Content preview:", content.slice(0, 100));
 
-  try {
-    const saved = await db
-      .insert(stickyMessages)
-      .values({
-        channelId: interaction.channelId,
-        content,
-        lastMessageId: null,
-      })
-      .onConflictDoUpdate({
-        target: stickyMessages.channelId,
-        set: {
+    try {
+      const saved = await db
+        .insert(stickyMessages)
+        .values({
+          channelId: interaction.channelId,
           content,
           lastMessageId: null,
-        },
-      })
-      .onConflictDoUpdate({
-  target: stickyMessages.channelId,
-  set: {
-    content,
-    lastMessageId: null,
-    updatedAt: new Date(),
-  },
-});
-      .returning();
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: stickyMessages.channelId,
+          set: {
+            content,
+            lastMessageId: null,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
 
-    console.log("✅ Sticky saved to DB:", saved);
-  } catch (error) {
-    console.error("❌ Sticky DB save failed:", error);
+      console.log("✅ Sticky saved to DB:", saved);
+    } catch (error) {
+      console.error("❌ Sticky DB save failed:", error);
+
+      await interaction.editReply(
+        "Sticky message could not be saved to the database. Check Railway logs. ❌"
+      );
+      return;
+    }
+
+    await updateStickyMessage(interaction.client, interaction.channelId);
 
     await interaction.editReply(
-      "Sticky message could not be saved to the database. Check Railway logs. ❌"
+      "🌿 DEBUG sticky command ran and attempted DB save."
     );
     return;
   }
-
-  await updateStickyMessage(interaction.client, interaction.channelId);
-
-  await interaction.editReply(
-    "🌿 DEBUG sticky command ran and attempted DB save."
-  );
-  return;
-}
 
   if (sub === "remove") {
     const [existing] = await db
@@ -120,7 +114,9 @@ if (sub === "set") {
 
     if (existing.lastMessageId) {
       try {
-        const ch = await interaction.client.channels.fetch(interaction.channelId);
+        const ch = await interaction.client.channels.fetch(
+          interaction.channelId
+        );
 
         if (ch?.isTextBased() && "messages" in ch) {
           const msg = await ch.messages.fetch(existing.lastMessageId);
