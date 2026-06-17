@@ -194,7 +194,7 @@ export async function initDb() {
       channel_id TEXT NOT NULL UNIQUE,
       content TEXT NOT NULL,
       last_message_id TEXT,
-      created_at TIMESTAMP DEFAULT NOW()
+      created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     );
 
