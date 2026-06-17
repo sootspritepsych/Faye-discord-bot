@@ -161,6 +161,20 @@ export const natureFacts = pgTable("nature_facts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const titleReservations = pgTable("title_reservations", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  discordUserId: text("discord_user_id").notNull(),
+  server: text("server").notNull(), // "11" or "40"
+  ign: text("ign").notNull(),
+  coordinates: text("coordinates").notNull(),
+  title: text("title").notNull(), // "Guardian of Fire" or "General"
+  date: text("date").notNull(), // YYYY-MM-DD
+  hourUtc: integer("hour_utc").notNull(),
+  calendarEventId: text("calendar_event_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS voice_sessions (
@@ -305,7 +319,21 @@ export async function initDb() {
       fact TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     );
-
+    
+    CREATE TABLE IF NOT EXISTS title_reservations (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      discord_user_id TEXT NOT NULL,
+      server TEXT NOT NULL,
+      ign TEXT NOT NULL,
+      coordinates TEXT NOT NULL,
+      title TEXT NOT NULL,
+      date TEXT NOT NULL,
+      hour_utc INTEGER NOT NULL,
+      calendar_event_id TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
