@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { db, titleReservations } from "../lib/database";
+import { createUnavaatuCalendarEvent } from "../lib/googleCalendar";
 
 const ALLOWED_HOURS_UTC = [
   10, 11, 12, 13, 14, 15, 16, 17,
@@ -198,16 +199,33 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const unixStart = Math.floor(start.getTime() / 1000);
 
-  await db.insert(titleReservations).values({
-    guildId: interaction.guildId!,
-    discordUserId: interaction.user.id,
+ let calendarEventId: string | null = null;
+
+try {
+  calendarEventId = await createUnavaatuCalendarEvent({
     server,
+    title,
     ign,
     coordinates,
-    title,
-    date,
-    hourUtc,
+    discordUser: interaction.user.tag,
+    start,
+    end,
   });
+} catch (error) {
+  console.error("Failed to create Unavaatu calendar event:", error);
+}
+
+await db.insert(titleReservations).values({
+  guildId: interaction.guildId!,
+  discordUserId: interaction.user.id,
+  server,
+  ign,
+  coordinates,
+  title,
+  date,
+  hourUtc,
+  calendarEventId,
+});
 
   const embed = new EmbedBuilder()
     .setTitle("🌑 UNAVAATU Reservation Confirmed")
