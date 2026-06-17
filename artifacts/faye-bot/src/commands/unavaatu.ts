@@ -1,7 +1,11 @@
 import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
+  EmbedBuilder,
+  TextChannel,
 } from "discord.js";
+import { and, eq } from "drizzle-orm";
+import { db, titleReservations } from "../lib/database";
 
 const ALLOWED_HOURS_UTC = [
   10, 11, 12, 13, 14, 15, 16, 17,
@@ -11,9 +15,6 @@ const ALLOWED_HOURS_UTC = [
 function getUpcomingUnavaatuDates(limit = 20) {
   const dates: { name: string; value: string }[] = [];
   const now = new Date();
-
-  // Every-other-Tuesday pattern:
-  // Not this coming Tuesday, yes the next one.
   const tuesdayAnchor = new Date("2026-06-30T00:00:00Z");
 
   for (let i = 0; dates.length < limit && i < 365 * 5; i++) {
@@ -21,44 +22,44 @@ function getUpcomingUnavaatuDates(limit = 20) {
     d.setUTCHours(0, 0, 0, 0);
     d.setUTCDate(now.getUTCDate() + i);
 
-    const day = d.getUTCDay(); // 1 = Monday, 2 = Tuesday
-
-    let allowed = false;
-
-    if (day === 1) {
-      allowed = true;
-    }
+    const day = d.getUTCDay();
+    let allowed = day === 1;
 
     if (day === 2 && d >= tuesdayAnchor) {
       const daysSinceAnchor = Math.floor(
-        (d.getTime() - tuesdayAnchor.getTime()) / (1000 * 60 * 60 * 24)
+        (d.getTime() - tuesdayAnchor.getTime()) / 86400000
       );
-
       const weeksSinceAnchor = Math.floor(daysSinceAnchor / 7);
-
-      if (weeksSinceAnchor % 2 === 0) {
-        allowed = true;
-      }
+      allowed = weeksSinceAnchor % 2 === 0;
     }
 
     if (!allowed) continue;
 
-    const value = d.toISOString().slice(0, 10);
-
-    const name = d.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    });
-
     dates.push({
-      name: `${name} UTC`,
-      value,
+      name: `${d.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      })} UTC`,
+      value: d.toISOString().slice(0, 10),
     });
   }
 
   return dates;
+}
+
+function getEventStart(date: string, hourUtc: number) {
+  const eventDate = new Date(`${date}T00:00:00Z`);
+
+  // 00:00 and 01:00 belong to the selected raid date,
+  // but occur on the next UTC calendar day.
+  if (hourUtc === 0 || hourUtc === 1) {
+    eventDate.setUTCDate(eventDate.getUTCDate() + 1);
+  }
+
+  eventDate.setUTCHours(hourUtc, 0, 0, 0);
+  return eventDate;
 }
 
 export const data = new SlashCommandBuilder()
@@ -68,7 +69,6 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName("reserve")
       .setDescription("Reserve a title.")
-
       .addStringOption((option) =>
         option
           .setName("server")
@@ -79,21 +79,18 @@ export const data = new SlashCommandBuilder()
             { name: "Server 40", value: "40" }
           )
       )
-
       .addStringOption((option) =>
         option
           .setName("ign")
           .setDescription("Your in-game name.")
           .setRequired(true)
       )
-
       .addStringOption((option) =>
         option
           .setName("coordinates")
           .setDescription("Coordinates, example: X:123 Y:456.")
           .setRequired(true)
       )
-
       .addStringOption((option) => {
         option
           .setName("date")
@@ -106,7 +103,6 @@ export const data = new SlashCommandBuilder()
 
         return option;
       })
-
       .addIntegerOption((option) => {
         option
           .setName("time")
@@ -122,7 +118,6 @@ export const data = new SlashCommandBuilder()
 
         return option;
       })
-
       .addStringOption((option) =>
         option
           .setName("title")
@@ -147,21 +142,115 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 
   const server = interaction.options.getString("server", true);
-  const ign = interaction.options.getString("ign", true);
-  const coordinates = interaction.options.getString("coordinates", true);
+  const ign = interaction.options.getString("ign", true).trim();
+  const coordinates = interaction.options.getString("coordinates", true).trim();
   const date = interaction.options.getString("date", true);
-  const time = interaction.options.getInteger("time", true);
+  const hourUtc = interaction.options.getInteger("time", true);
   const title = interaction.options.getString("title", true);
 
+  const takenTitle = await db
+    .select()
+    .from(titleReservations)
+    .where(
+      and(
+        eq(titleReservations.guildId, interaction.guildId!),
+        eq(titleReservations.server, server),
+        eq(titleReservations.date, date),
+        eq(titleReservations.hourUtc, hourUtc),
+        eq(titleReservations.title, title)
+      )
+    );
+
+  if (takenTitle.length > 0) {
+    await interaction.reply({
+      content: `❌ That slot is already taken: **S${server} | ${title} | ${date} | ${hourUtc
+        .toString()
+        .padStart(2, "0")}:00 UTC**`,
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const sameIgnSameHour = await db
+    .select()
+    .from(titleReservations)
+    .where(
+      and(
+        eq(titleReservations.guildId, interaction.guildId!),
+        eq(titleReservations.server, server),
+        eq(titleReservations.date, date),
+        eq(titleReservations.hourUtc, hourUtc),
+        eq(titleReservations.ign, ign)
+      )
+    );
+
+  if (sameIgnSameHour.length > 0) {
+    await interaction.reply({
+      content: `❌ **${ign}** already has a reservation at that same time.`,
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const start = getEventStart(date, hourUtc);
+  const end = new Date(start);
+  end.setUTCHours(end.getUTCHours() + 1);
+
+  const unixStart = Math.floor(start.getTime() / 1000);
+
+  await db.insert(titleReservations).values({
+    guildId: interaction.guildId!,
+    discordUserId: interaction.user.id,
+    server,
+    ign,
+    coordinates,
+    title,
+    date,
+    hourUtc,
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle("🌑 UNAVAATU Reservation Confirmed")
+    .setColor(0x7c3aed)
+    .addFields(
+      { name: "Server", value: `S${server}`, inline: true },
+      { name: "Title", value: title, inline: true },
+      { name: "Player", value: ign, inline: true },
+      { name: "Coordinates", value: coordinates, inline: false },
+      {
+        name: "UTC Time",
+        value: `${hourUtc.toString().padStart(2, "0")}:00–${end
+          .getUTCHours()
+          .toString()
+          .padStart(2, "0")}:00 UTC`,
+        inline: true,
+      },
+      {
+        name: "Local Time",
+        value: `<t:${unixStart}:F>`,
+        inline: true,
+      },
+      {
+        name: "Reserved By",
+        value: `${interaction.user}`,
+        inline: false,
+      }
+    )
+    .setFooter({ text: `Raid date: ${date}` })
+    .setTimestamp();
+
+  const channelId = process.env.UNAVAATU_CHANNEL_ID;
+
+  if (channelId) {
+    const channel = await interaction.client.channels.fetch(channelId);
+
+    if (channel && channel.isTextBased()) {
+      await (channel as TextChannel).send({ embeds: [embed] });
+    }
+  }
+
   await interaction.reply({
-    content:
-      `🌑 **Unavaatu reservation received!**\n\n` +
-      `**Server:** ${server}\n` +
-      `**IGN:** ${ign}\n` +
-      `**Coordinates:** ${coordinates}\n` +
-      `**Date:** ${date}\n` +
-      `**Time:** ${time.toString().padStart(2, "0")}:00 UTC\n` +
-      `**Title:** ${title}`,
+    content: `✅ Your Unavaatu reservation is confirmed: **UNAVAATU | S${server} | ${title} | ${ign}**`,
     ephemeral: true,
   });
 }
