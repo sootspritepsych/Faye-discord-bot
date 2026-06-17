@@ -25,14 +25,6 @@ export const voiceSessions = pgTable("voice_sessions", {
   durationSeconds: integer("duration_seconds"),
 });
 
-export const stickyMessages = pgTable("faye_sticky_messages", {
-  id: serial("id").primaryKey(),
-  channelId: text("channel_id").notNull().unique(),
-  content: text("content").notNull(),
-  lastMessageId: text("last_message_id"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const reminders = pgTable("faye_reminders", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull(),
