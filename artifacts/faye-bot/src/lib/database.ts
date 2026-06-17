@@ -312,6 +312,8 @@ export async function initDb() {
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS staff_role_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS announcement_channel_id TEXT;
+    ALTER TABLE faye_sticky_messages
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
   `);
 
   console.log("🌿 Faye database tables initialized");
