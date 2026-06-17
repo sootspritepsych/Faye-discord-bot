@@ -16,6 +16,7 @@ import * as timestamp from "./timestamp";
 import * as vcactive from "./vcactive";
 import * as askfaye from "./askfaye";
 import * as naturefact from "./naturefact";
+import * as unavaatu from "./unavaatu";
 
 export interface Command {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +27,7 @@ export interface Command {
 const commandList: Command[] = [
   confess, suggest, qotd, sticky, reminder, setup,
   faye, help, about, wisdom,
-  modlog, warn, warnings,timestamp, vcactive, askfaye, naturefact,
+  modlog, warn, warnings,timestamp, vcactive, askfaye, naturefact, unavaatu,
 ];
 
 export const commands = new Collection<string, Command>();
