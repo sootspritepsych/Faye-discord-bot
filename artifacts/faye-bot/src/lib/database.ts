@@ -15,6 +15,15 @@ export const pool = new Pool({
 
 export const db = drizzle(pool);
 
+export const stickyMessages = pgTable("faye_sticky_messages", {
+  id: serial("id").primaryKey(),
+  channelId: text("channel_id").notNull().unique(),
+  content: text("content").notNull(),
+  lastMessageId: text("last_message_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const voiceSessions = pgTable("voice_sessions", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull(),
@@ -186,6 +195,7 @@ export async function initDb() {
       content TEXT NOT NULL,
       last_message_id TEXT,
       created_at TIMESTAMP DEFAULT NOW()
+      updated_at TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS faye_reminders (
@@ -312,6 +322,7 @@ export async function initDb() {
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS staff_role_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS announcement_channel_id TEXT;
+    
     ALTER TABLE faye_sticky_messages
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
   `);
