@@ -1,14 +1,15 @@
-import { SlashCommandBuilder } from "discord.js";
+import {
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
+} from "discord.js";
 
-export const unavaatuCommand = new SlashCommandBuilder()
+export const data = new SlashCommandBuilder()
   .setName("unavaatu")
   .setDescription("Reserve and manage Unavaatu titles.")
-
   .addSubcommand(subcommand =>
     subcommand
       .setName("reserve")
       .setDescription("Reserve a title.")
-
       .addStringOption(option =>
         option
           .setName("server")
@@ -19,7 +20,6 @@ export const unavaatuCommand = new SlashCommandBuilder()
             { name: "Server 40", value: "40" }
           )
       )
-
       .addStringOption(option =>
         option
           .setName("title")
@@ -31,3 +31,10 @@ export const unavaatuCommand = new SlashCommandBuilder()
           )
       )
   );
+
+export async function execute(interaction: ChatInputCommandInteraction) {
+  await interaction.reply({
+    content: "🌑 Unavaatu reservation system is connected.",
+    ephemeral: true,
+  });
+}
