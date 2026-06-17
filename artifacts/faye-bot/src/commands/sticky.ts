@@ -79,6 +79,14 @@ if (sub === "set") {
           lastMessageId: null,
         },
       })
+      .onConflictDoUpdate({
+  target: stickyMessages.channelId,
+  set: {
+    content,
+    lastMessageId: null,
+    updatedAt: new Date(),
+  },
+});
       .returning();
 
     console.log("✅ Sticky saved to DB:", saved);
