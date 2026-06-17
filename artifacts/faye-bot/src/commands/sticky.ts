@@ -55,11 +55,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     }
   }
 
-  if (sub === "set") {
-    const rawContent = interaction.options.getString("message", true);
-    const content = formatStickyContent(rawContent);
+if (sub === "set") {
+  const rawContent = interaction.options.getString("message", true);
+  const content = formatStickyContent(rawContent);
 
-    await db
+  console.log("🌿 STICKY SET COMMAND RUNNING");
+  console.log("DATABASE_URL exists?", !!process.env.DATABASE_URL);
+  console.log("Channel ID:", interaction.channelId);
+  console.log("Content preview:", content.slice(0, 100));
+
+  try {
+    const saved = await db
       .insert(stickyMessages)
       .values({
         channelId: interaction.channelId,
@@ -72,15 +78,26 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           content,
           lastMessageId: null,
         },
-      });
+      })
+      .returning();
 
-    await updateStickyMessage(interaction.client, interaction.channelId);
+    console.log("✅ Sticky saved to DB:", saved);
+  } catch (error) {
+    console.error("❌ Sticky DB save failed:", error);
 
     await interaction.editReply(
-      "Sticky message set! Use `\\n` where you want line breaks. 📌"
+      "Sticky message could not be saved to the database. Check Railway logs. ❌"
     );
     return;
   }
+
+  await updateStickyMessage(interaction.client, interaction.channelId);
+
+  await interaction.editReply(
+    "🌿 DEBUG sticky command ran and attempted DB save."
+  );
+  return;
+}
 
   if (sub === "remove") {
     const [existing] = await db
