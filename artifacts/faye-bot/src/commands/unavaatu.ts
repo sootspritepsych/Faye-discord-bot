@@ -6,7 +6,6 @@ import {
 } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { db, titleReservations } from "../lib/database";
-import { createUnavaatuCalendarEvent } from "../lib/googleCalendar";
 
 const ALLOWED_HOURS_UTC = [
   10, 11, 12, 13, 14, 15, 16, 17,
@@ -16,6 +15,7 @@ const ALLOWED_HOURS_UTC = [
 function getUpcomingUnavaatuDates(limit = 20) {
   const dates: { name: string; value: string }[] = [];
   const now = new Date();
+
   const tuesdayAnchor = new Date("2026-06-30T00:00:00Z");
 
   for (let i = 0; dates.length < limit && i < 365 * 5; i++) {
@@ -30,8 +30,12 @@ function getUpcomingUnavaatuDates(limit = 20) {
       const daysSinceAnchor = Math.floor(
         (d.getTime() - tuesdayAnchor.getTime()) / 86400000
       );
+
       const weeksSinceAnchor = Math.floor(daysSinceAnchor / 7);
-      allowed = weeksSinceAnchor % 2 === 0;
+
+      if (weeksSinceAnchor % 2 === 0) {
+        allowed = true;
+      }
     }
 
     if (!allowed) continue;
@@ -53,8 +57,6 @@ function getUpcomingUnavaatuDates(limit = 20) {
 function getEventStart(date: string, hourUtc: number) {
   const eventDate = new Date(`${date}T00:00:00Z`);
 
-  // 00:00 and 01:00 belong to the selected raid date,
-  // but occur on the next UTC calendar day.
   if (hourUtc === 0 || hourUtc === 1) {
     eventDate.setUTCDate(eventDate.getUTCDate() + 1);
   }
@@ -199,33 +201,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const unixStart = Math.floor(start.getTime() / 1000);
 
- let calendarEventId: string | null = null;
-
-try {
-  calendarEventId = await createUnavaatuCalendarEvent({
+  await db.insert(titleReservations).values({
+    guildId: interaction.guildId!,
+    discordUserId: interaction.user.id,
     server,
-    title,
     ign,
     coordinates,
-    discordUser: interaction.user.tag,
-    start,
-    end,
+    title,
+    date,
+    hourUtc,
   });
-} catch (error) {
-  console.error("Failed to create Unavaatu calendar event:", error);
-}
-
-await db.insert(titleReservations).values({
-  guildId: interaction.guildId!,
-  discordUserId: interaction.user.id,
-  server,
-  ign,
-  coordinates,
-  title,
-  date,
-  hourUtc,
-  calendarEventId,
-});
 
   const embed = new EmbedBuilder()
     .setTitle("🌑 UNAVAATU Reservation Confirmed")
