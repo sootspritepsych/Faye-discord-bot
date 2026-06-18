@@ -16,7 +16,6 @@ export default function registerReadyEvent(client: Client) {
     await loadReminders(client);
     await startWisdomScheduler(client);
     await startWelcomeJourneyScheduler(client);
-    await startQotdScheduler(client);
     
   });
 }
