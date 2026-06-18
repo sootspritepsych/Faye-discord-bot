@@ -2,7 +2,6 @@ import { Client, Events, ActivityType } from "discord.js";
 import { loadReminders } from "../lib/reminderScheduler";
 import { startWisdomScheduler } from "../lib/wisdomScheduler";
 import { startWelcomeJourneyScheduler } from "../lib/welcomeJourneyScheduler";
-import { startQotdScheduler } from "../lib/qotdScheduler";
 
 export default function registerReadyEvent(client: Client) {
   client.once(Events.ClientReady, async (readyClient) => {
