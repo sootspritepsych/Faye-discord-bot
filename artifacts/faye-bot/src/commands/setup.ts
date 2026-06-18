@@ -1,4 +1,8 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import {
+  ChatInputCommandInteraction,
+  SlashCommandBuilder,
+  EmbedBuilder,
+} from "discord.js";
 import { db, guildConfig } from "../lib/database";
 import { eq } from "drizzle-orm";
 
@@ -54,17 +58,9 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("qotd-post-channel")
-      .setDescription("Set the public channel where QOTD is posted each day")
+      .setDescription("Set the public channel where staff can manually post QOTDs")
       .addChannelOption((opt) =>
         opt.setName("channel").setDescription("The public QOTD channel").setRequired(true)
-      )
-      .addIntegerOption((opt) =>
-        opt
-          .setName("hour")
-          .setDescription("UTC hour to auto-post, 0–23, default 9")
-          .setRequired(false)
-          .setMinValue(0)
-          .setMaxValue(23)
       )
   )
 
@@ -124,7 +120,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const sub = interaction.options.getSubcommand();
 
-  const upsertConfig = async (update: Partial<typeof guildConfig.$inferInsert>) => {
+  const upsertConfig = async (
+    update: Partial<typeof guildConfig.$inferInsert>
+  ) => {
     await db
       .insert(guildConfig)
       .values({
@@ -177,15 +175,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   if (sub === "qotd-post-channel") {
     const channel = interaction.options.getChannel("channel", true);
-    const hour = interaction.options.getInteger("hour") ?? 9;
 
     await upsertConfig({
       qotdPostChannelId: channel.id,
-      qotdPostHour: hour,
+      qotdPostHour: null,
     });
 
     await interaction.editReply(
-      `QOTD auto-post channel set to <#${channel.id}> at **${hour}:00 UTC** daily. 🌸`
+      `QOTD post channel set to <#${channel.id}>. Staff can manually post approved questions using \`/qotd use\`. 🌸`
     );
     return;
   }
@@ -270,10 +267,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           `QOTD Mod: ${
             config.qotdModChannelId ? `<#${config.qotdModChannelId}>` : "Not set"
           }`,
-          `QOTD Auto-Post: ${
-            config.qotdPostChannelId
-              ? `<#${config.qotdPostChannelId}> at ${config.qotdPostHour ?? 9}:00 UTC`
-              : "Disabled"
+          `QOTD Post Channel: ${
+            config.qotdPostChannelId ? `<#${config.qotdPostChannelId}>` : "Not set"
           }`,
           `Welcome: ${
             config.welcomeChannelId ? `<#${config.welcomeChannelId}>` : "DM only"
@@ -292,5 +287,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
+    return;
   }
 }
