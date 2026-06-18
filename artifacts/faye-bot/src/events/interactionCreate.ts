@@ -81,6 +81,7 @@ export default function registerInteractionCreateEvent(client: Client) {
         // Create ticket channel
         const ticketChannel = await guild.channels.create({
           name: `ticket-${interaction.user.username.toLowerCase()}`,
+          parent: "1517072801062850560",
           permissionOverwrites: [
             {
               id: guild.roles.everyone.id,
