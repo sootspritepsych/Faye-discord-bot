@@ -117,6 +117,34 @@ export default function registerInteractionCreateEvent(client: Client) {
   allowedMentions: {
     roles: ["1351498500742971447"],
   },
+  components: [
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          custom_id: "ticket_claim",
+          label: "Claim",
+          style: 3,
+          emoji: "🍃",
+        },
+        {
+          type: 2,
+          custom_id: "ticket_close",
+          label: "Close",
+          style: 2,
+          emoji: "🔒",
+        },
+        {
+          type: 2,
+          custom_id: "ticket_delete",
+          label: "Delete",
+          style: 4,
+          emoji: "🗑️",
+        },
+      ],
+    },
+  ],
 });
 
         await interaction.reply({
