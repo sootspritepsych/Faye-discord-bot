@@ -175,6 +175,19 @@ export const titleReservations = pgTable("title_reservations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  eventType: text("event_type").notNULL(),
+  description: text("description"),
+  server: text("server"),
+  startTime: timestamp("timestamp").notNULL(),
+  endTime: timestamp("timestamp").notNULL(),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS voice_sessions (
