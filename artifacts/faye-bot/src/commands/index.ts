@@ -17,6 +17,7 @@ import * as vcactive from "./vcactive";
 import * as askfaye from "./askfaye";
 import * as naturefact from "./naturefact";
 import * as unavaatu from "./unavaatu";
+import { complimentCommand } from "./compliment";
 
 export interface Command {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
