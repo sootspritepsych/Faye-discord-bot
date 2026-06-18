@@ -64,11 +64,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
+    const submittedBy = `${interaction.user.username} (${interaction.user.id})`;
+
     const [inserted] = await db
       .insert(qotdSuggestions)
       .values({
         guildId: interaction.guildId,
-        submittedBy: interaction.user.username,
+        submittedBy,
         question,
         used: false,
       })
@@ -91,7 +93,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setDescription(`**${question}**`)
       .addFields(
         { name: "Suggestion ID", value: `#${inserted.id}`, inline: true },
-        { name: "Action", value: `/qotd use id:${inserted.id}`, inline: true }
+        { name: "Submitted By", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Action", value: `/qotd use id:${inserted.id}` }
       )
       .setFooter({
         text: `Submitted by ${interaction.user.username} · Garden of Harmony`,
