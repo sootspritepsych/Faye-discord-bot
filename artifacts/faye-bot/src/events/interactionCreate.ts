@@ -3,61 +3,69 @@ import {
   Events,
   Interaction,
   ChatInputCommandInteraction,
-  PermissionFlagsBits,
 } from "discord.js";
-import { eq } from "drizzle-orm";
 import { commands } from "../commands";
-import { db, tickets } from "../lib/database";
 import {
   handleConfessionReplyButton,
   handleConfessionReplyModal,
-import { handleTicketButton } from "./ticketHandlers";
 } from "./confessionHandlers";
+import { handleTicketButton } from "./ticketHandlers";
 
 export default function registerInteractionCreateEvent(client: Client) {
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
-    // Slash Commands
-    if (interaction.isChatInputCommand()) {
-      const command = commands.get(interaction.commandName);
-      if (!command) return;
+    try {
+      // Slash Commands
+      if (interaction.isChatInputCommand()) {
+        const command = commands.get(interaction.commandName);
+        if (!command) return;
 
-      try {
         await command.execute(interaction as ChatInputCommandInteraction);
-      } catch (err) {
-        console.error(`Error executing command ${interaction.commandName}:`, err);
-
-        const msg = {
-          content: "Something stirred the garden unexpectedly. Please try again. 🍃",
-          ephemeral: true,
-        };
-
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(msg);
-        } else {
-          await interaction.reply(msg);
-        }
-      }
-
-      return;
-    }
-
-    // Buttons
-    if (interaction.isButton()) {
-      // Confession Reply
-      if (interaction.customId.startsWith("confess-reply_")) {
-        await handleConfessionReplyButton(interaction);
         return;
       }
 
-      // Ticket Open
-      if (interaction.customId === "ticket_open") {
-        const guild = interaction.guild;
-        if (!guild) return;
+      // Buttons
+      if (interaction.isButton()) {
+        // Confession reply button
+        if (interaction.customId.startsWith("confess-reply_")) {
+          await handleConfessionReplyButton(interaction);
+          return;
+        }
 
-        const safeUsername = interaction.user.username
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "");
+        // Ticket buttons
+        if (
+          interaction.customId === "ticket_open" ||
+          interaction.customId === "ticket_close" ||
+          interaction.customId === "ticket_claim"
+        ) {
+          await handleTicketButton(interaction);
+          return;
+        }
+      }
 
-        const existing = guild.channels.cache.find(
-          (channel) =>
-            channel.name.starts
+      // Modals
+      if (interaction.isModalSubmit()) {
+        // Confession reply modal
+        if (interaction.customId.startsWith("confess-reply-modal_")) {
+          await handleConfessionReplyModal(interaction);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Interaction error:", err);
+
+      const msg = {
+        content: "Something stirred the garden unexpectedly. Please try again. 🍃",
+        ephemeral: true,
+      };
+
+      if (
+        interaction.isRepliable() &&
+        (interaction.replied || interaction.deferred)
+      ) {
+        await interaction.followUp(msg).catch(() => {});
+      } else if (interaction.isRepliable()) {
+        await interaction.reply(msg).catch(() => {});
+      }
+    }
+  });
+}
