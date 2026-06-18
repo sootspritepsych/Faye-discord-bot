@@ -155,6 +155,42 @@ export default function registerInteractionCreateEvent(client: Client) {
         return;
       }
 
+            // Ticket Claim
+      if (interaction.customId === "ticket_claim") {
+        await interaction.reply({
+          content: `🍃 Ticket claimed by ${interaction.user}.`,
+        });
+        return;
+      }
+
+      // Ticket Close
+      if (interaction.customId === "ticket_close") {
+        await interaction.channel?.permissionOverwrites.edit(
+          interaction.user.id,
+          {
+            SendMessages: false,
+          }
+        );
+
+        await interaction.reply({
+          content: "🔒 This ticket has been closed.",
+        });
+        return;
+      }
+
+      // Ticket Delete
+      if (interaction.customId === "ticket_delete") {
+        await interaction.reply({
+          content: "🗑️ Deleting this ticket in 5 seconds...",
+        });
+
+        setTimeout(async () => {
+          await interaction.channel?.delete();
+        }, 5000);
+
+        return;
+      }
+
       return;
     }
 
