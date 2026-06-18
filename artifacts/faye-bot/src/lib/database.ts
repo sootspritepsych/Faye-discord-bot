@@ -163,15 +163,19 @@ export const natureFacts = pgTable("nature_facts", {
 
 export const titleReservations = pgTable("title_reservations", {
   id: serial("id").primaryKey(),
+
+  eventId: integer("event_id"),
   guildId: text("guild_id").notNull(),
   discordUserId: text("discord_user_id").notNull(),
-  server: text("server").notNull(), // "11" or "40"
+
+  server: text("server").notNull(),
   ign: text("ign").notNull(),
   coordinates: text("coordinates").notNull(),
-  title: text("title").notNull(), // "Guardian of Fire" or "General"
-  date: text("date").notNull(), // YYYY-MM-DD
+
+  title: text("title").notNull(),
+  date: text("date").notNull(),
   hourUtc: integer("hour_utc").notNull(),
-  calendarEventId: text("calendar_event_id"),
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
