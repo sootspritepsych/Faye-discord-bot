@@ -197,6 +197,19 @@ export const events = pgTable("events", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const tickets = pgTable("tickets", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  channelId: text("channel_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username"),
+  status: text("status").default("open").notNull(),
+  claimedBy: text("claimed_by"),
+  transcript: text("transcript"),
+  createdAt: timestamp("created_at").defaultNow(),
+  closedAt: timestamp("closed_at"),
+});
+
 export async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS voice_sessions (
@@ -355,7 +368,20 @@ export async function initDb() {
       calendar_event_id TEXT,
       created_at TIMESTAMP DEFAULT NOW()
     );
-    
+
+    CREATE TABLE IF NOT EXISTS tickets (
+  id SERIAL PRIMARY KEY,
+  guild_id TEXT NOT NULL,
+  channel_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  username TEXT,
+  status TEXT NOT NULL DEFAULT 'open',
+  claimed_by TEXT,
+  transcript TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  closed_at TIMESTAMP
+);
+
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
