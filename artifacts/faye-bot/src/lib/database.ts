@@ -177,12 +177,17 @@ export const titleReservations = pgTable("title_reservations", {
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
+
   guildId: text("guild_id").notNull(),
+
   eventType: text("event_type").notNull(),
+  title: text("title").notNull(),
   description: text("description"),
+
   server: text("server"),
-  startTime: timestamp("timestamp").notNull(),
-  endTime: timestamp("timestamp").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+
   createdBy: text("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
