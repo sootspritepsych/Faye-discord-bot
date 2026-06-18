@@ -122,18 +122,19 @@ export default function registerMessageCreateEvent(client: Client) {
   console.log("REGISTERING messageCreate event");
 
   client.on(Events.MessageCreate, async (message: Message) => {
-    try {
-      console.log("MESSAGE CREATE FIRED:", {
-        messageId: message.id,
-        channelId: message.channelId,
-        author: message.author.username,
-        isBot: message.author.bot,
-        content: message.content,
-      });
+  try {
+    console.log("MESSAGE CREATE FIRED:", {
+      messageId: message.id,
+      channelId: message.channelId,
+      author: message.author.username,
+      isBot: message.author.bot,
+      content: message.content,
+    });
 
-      if (message.author.bot) return;
+    // Ignore other bots, but allow Faye's own messages to refresh stickies
+    if (message.author.bot && message.author.id !== client.user?.id) return;
 
-      console.log("CHECKING STICKY TABLE FOR:", message.channelId);
+    console.log("CHECKING STICKY TABLE FOR:", message.channelId);
 
       const [sticky] = await db
         .select()
