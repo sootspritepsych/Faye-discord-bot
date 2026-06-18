@@ -113,7 +113,7 @@ export default function registerInteractionCreateEvent(client: Client) {
   content:
     `🌿 Welcome ${interaction.user}!\n\n` +
     "Please explain what you need help with.\n\n" +
-    "<@&1351498500742971447> will be with you shortly. 🍃",
+    " A <@&1351498500742971447> will be with you shortly. 🍃",
   allowedMentions: {
     roles: ["1351498500742971447"],
   },
