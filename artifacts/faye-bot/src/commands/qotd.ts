@@ -9,6 +9,8 @@ import {
 import { db, qotdSuggestions, guildConfig } from "../lib/database";
 import { eq, and } from "drizzle-orm";
 
+const QOTD_ROLE_ID = "1444032604180578535";
+
 export const data = new SlashCommandBuilder()
   .setName("qotd")
   .setDescription("Question of the Day commands")
@@ -93,7 +95,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setDescription(`**${question}**`)
       .addFields(
         { name: "Suggestion ID", value: `#${inserted.id}`, inline: true },
-        { name: "Submitted By", value: `<@${interaction.user.id}>`, inline: true },
+        {
+          name: "Submitted By",
+          value: `<@${interaction.user.id}>`,
+          inline: true,
+        },
         { name: "Action", value: `/qotd use id:${inserted.id}` }
       )
       .setFooter({
@@ -207,7 +213,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       })
       .setTimestamp();
 
-    await (channel as TextChannel).send({ embeds: [embed] });
+    await (channel as TextChannel).send({
+      content: `<@&${QOTD_ROLE_ID}>`,
+      embeds: [embed],
+      allowedMentions: {
+        roles: [QOTD_ROLE_ID],
+      },
+    });
 
     await db
       .update(qotdSuggestions)
@@ -215,7 +227,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .where(eq(qotdSuggestions.id, id));
 
     await interaction.editReply(
-      `QOTD **#${id}** has been posted to <#${channelId}>! 🌿`
+      `QOTD **#${id}** has been posted to <#${channelId}> and <@&${QOTD_ROLE_ID}> was pinged! 🌿`
     );
   }
 }
