@@ -3,8 +3,9 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
 } from "discord.js";
+import { getFayeResponse } from "../lib/openai";
 
-const compliments = [
+const fallbackCompliments = [
   "You make the Garden feel warmer just by being here.",
   "Your kindness leaves little traces of light wherever you go.",
   "The effort you put in matters, even when no one sees it.",
@@ -47,23 +48,16 @@ const compliments = [
   "You are enough, exactly as you are today.",
 ];
 
-const rareCompliments = [
-  "✨ The spirits of the Garden have chosen you today. Keep this blessing close.",
-  "🌌 Even on cloudy nights, your light is enough to guide someone home.",
-  "🦉 Faye places a tiny glowing feather in your hands. You are deeply appreciated.",
-  "🌸 A rare flower blooms in the Garden today, and somehow it feels like you.",
-  "🍃 The Garden whispers your name with gratitude.",
-  "🌙 Faye tucks a moonbeam into your pocket for when you forget how loved you are.",
-  "🦋 A butterfly lands nearby, as if to say you are exactly where you need to be.",
-  "🌿 The roots beneath the Garden hum softly. You belong here.",
-  "⭐ Faye grants you a tiny star of courage for the road ahead.",
-  "🍄 A circle of mushrooms appears. The Garden has decided you are magical.",
-];
+function getFallbackCompliment() {
+  return fallbackCompliments[
+    Math.floor(Math.random() * fallbackCompliments.length)
+  ];
+}
 
 export const complimentCommand = {
   data: new SlashCommandBuilder()
     .setName("compliment")
-  .setDescription("Give yourself or someone else a gentle compliment from Faye.")
+    .setDescription("Give yourself or someone else a gentle compliment from Faye.")
     .addUserOption((option) =>
       option
         .setName("user")
@@ -72,17 +66,43 @@ export const complimentCommand = {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
+    await interaction.deferReply();
+
     const target = interaction.options.getUser("user") ?? interaction.user;
 
-    const isRare = Math.random() < 0.05;
-    const compliment = isRare
-      ? rareCompliments[Math.floor(Math.random() * rareCompliments.length)]
-      : compliments[Math.floor(Math.random() * compliments.length)];
+    let compliment = getFallbackCompliment();
+
+    try {
+      const aiPrompt = `
+Generate one short, wholesome compliment in Faye's voice.
+
+Faye is a gentle garden spirit for a cozy Discord community called Garden of Harmony.
+
+Rules:
+- Under 40 words.
+- Do not mention physical appearance.
+- Do not be romantic or flirty.
+- Do not use the person's real name.
+- Be warm, encouraging, cozy, and sincere.
+- Light nature/garden imagery is welcome.
+- Return only the compliment sentence, no quotes.
+`;
+
+      const aiCompliment = await getFayeResponse(aiPrompt);
+
+      if (aiCompliment && aiCompliment.length < 300) {
+        compliment = aiCompliment.trim();
+      }
+    } catch (error) {
+      console.error("AI compliment failed, using fallback:", error);
+    }
 
     const embed = new EmbedBuilder()
       .setColor(0x77b255)
-   .setDescription(`🌿 Faye smiles softly at ${target}.\n\n*“${compliment}”*`);
+      .setDescription(`🌿 Faye smiles softly at ${target}.\n\n*“${compliment}”*`);
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   },
 };
+
+
