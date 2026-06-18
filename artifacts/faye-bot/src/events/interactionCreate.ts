@@ -11,6 +11,7 @@ import { db, tickets } from "../lib/database";
 import {
   handleConfessionReplyButton,
   handleConfessionReplyModal,
+import { handleTicketButton } from "./ticketHandlers";
 } from "./confessionHandlers";
 
 export default function registerInteractionCreateEvent(client: Client) {
