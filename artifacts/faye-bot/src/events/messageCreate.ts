@@ -131,8 +131,20 @@ export default function registerMessageCreateEvent(client: Client) {
       content: message.content,
     });
 
-    // Ignore other bots, but allow Faye's own messages to refresh stickies
-    if (message.author.bot && message.author.id !== client.user?.id) return;
+    // Ignore other bots
+if (message.author.bot && message.author.id !== client.user?.id) return;
+
+// Ignore Faye's own sticky messages so they don't cause a loop
+if (message.author.id === client.user?.id) {
+  const [sticky] = await db
+    .select()
+    .from(stickyMessages)
+    .where(eq(stickyMessages.channelId, message.channelId));
+
+  if (sticky && message.id === sticky.lastMessageId) {
+    return;
+  }
+}
 
     console.log("CHECKING STICKY TABLE FOR:", message.channelId);
 
