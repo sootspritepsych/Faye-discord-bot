@@ -4,13 +4,47 @@ import {
   EmbedBuilder,
   TextChannel,
 } from "discord.js";
-import { and, eq } from "drizzle-orm";
+import { and, eq , sql } from "drizzle-orm";
 import { db, events, titleReservations } from "../lib/database";
 
 const ALLOWED_HOURS_UTC = [
   10, 11, 12, 13, 14, 15, 16, 17,
   18, 19, 20, 21, 22, 23, 0, 1,
 ];
+async function ensureUnavaatuTables() {
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS events (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      server TEXT,
+      start_time TIMESTAMP NOT NULL,
+      end_time TIMESTAMP NOT NULL,
+      created_by TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS title_reservations (
+      id SERIAL PRIMARY KEY,
+      event_id INTEGER,
+      guild_id TEXT NOT NULL,
+      discord_user_id TEXT NOT NULL,
+      server TEXT NOT NULL,
+      ign TEXT NOT NULL,
+      coordinates TEXT NOT NULL,
+      title TEXT NOT NULL,
+      date TEXT NOT NULL,
+      hour_utc INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    ALTER TABLE title_reservations
+    ADD COLUMN IF NOT EXISTS event_id INTEGER;
+  `);
+}
 
 function getUpcomingUnavaatuDates(limit = 20) {
   const dates: { name: string; value: string }[] = [];
@@ -132,8 +166,11 @@ export const data = new SlashCommandBuilder()
           )
       )
   );
-
 export async function execute(interaction: ChatInputCommandInteraction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  await ensureUnavaatuTables();
+
   const server = interaction.options.getString("server", true);
   const ign = interaction.options.getString("ign", true).trim();
   const coordinates = interaction.options.getString("coordinates", true).trim();
@@ -155,11 +192,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     );
 
   if (takenTitle.length > 0) {
-    await interaction.reply({
+    await interaction.editReply({
       content: `❌ That slot is already taken: **S${server} | ${title} | ${date} | ${hourUtc
         .toString()
         .padStart(2, "0")}:00 UTC**`,
-      ephemeral: true,
     });
     return;
   }
@@ -178,9 +214,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     );
 
   if (sameIgnSameHour.length > 0) {
-    await interaction.reply({
+    await interaction.editReply({
       content: `❌ **${ign}** already has a reservation at that same time.`,
-      ephemeral: true,
     });
     return;
   }
@@ -264,8 +299,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     }
   }
 
-  await interaction.reply({
+  await interaction.editReply({
     content: `✅ Your Unavaatu reservation is confirmed: **${eventTitle}**`,
-    ephemeral: true,
   });
 }
+
