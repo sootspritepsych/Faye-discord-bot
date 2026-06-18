@@ -5,7 +5,7 @@ import {
   TextChannel,
 } from "discord.js";
 import { and, eq } from "drizzle-orm";
-import { db, titleReservations } from "../lib/database";
+import { db, events, titleReservations } from "../lib/database";
 
 const ALLOWED_HOURS_UTC = [
   10, 11, 12, 13, 14, 15, 16, 17,
@@ -134,16 +134,6 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const subcommand = interaction.options.getSubcommand();
-
-  if (subcommand !== "reserve") {
-    await interaction.reply({
-      content: "Unknown Unavaatu command.",
-      ephemeral: true,
-    });
-    return;
-  }
-
   const server = interaction.options.getString("server", true);
   const ign = interaction.options.getString("ign", true).trim();
   const coordinates = interaction.options.getString("coordinates", true).trim();
@@ -201,7 +191,29 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const unixStart = Math.floor(start.getTime() / 1000);
 
+  const eventTitle = `UNAVAATU | S${server} | ${title} | ${ign}`;
+
+  const insertedEvents = await db
+    .insert(events)
+    .values({
+      guildId: interaction.guildId!,
+      eventType: "UNAVAATU",
+      title: eventTitle,
+      description:
+        `IGN: ${ign}\n` +
+        `Coordinates: ${coordinates}\n` +
+        `Reserved by: ${interaction.user.tag}`,
+      server,
+      startTime: start,
+      endTime: end,
+      createdBy: interaction.user.id,
+    })
+    .returning({ id: events.id });
+
+  const eventId = insertedEvents[0]?.id ?? null;
+
   await db.insert(titleReservations).values({
+    eventId,
     guildId: interaction.guildId!,
     discordUserId: interaction.user.id,
     server,
@@ -253,7 +265,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 
   await interaction.reply({
-    content: `✅ Your Unavaatu reservation is confirmed: **UNAVAATU | S${server} | ${title} | ${ign}**`,
+    content: `✅ Your Unavaatu reservation is confirmed: **${eventTitle}**`,
     ephemeral: true,
   });
 }
