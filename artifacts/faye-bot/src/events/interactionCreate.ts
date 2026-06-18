@@ -110,10 +110,14 @@ export default function registerInteractionCreateEvent(client: Client) {
         });
 
         await ticketChannel.send({
-          content:
-            `🌿 Welcome ${interaction.user}!\n\n` +
-            "Please explain what you need help with. A member of the Garden team will assist you shortly.",
-        });
+  content:
+    `🌿 Welcome ${interaction.user}!\n\n` +
+    "Please explain what you need help with.\n\n" +
+    "<@&1351498500742971447> will be with you shortly. 🍃",
+  allowedMentions: {
+    roles: ["1351498500742971447"],
+  },
+});
 
         await interaction.reply({
           content: `🌸 Your ticket has been created: ${ticketChannel}`,
