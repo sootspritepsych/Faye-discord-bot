@@ -118,7 +118,7 @@ export const data = new SlashCommandBuilder()
       )
       .addStringOption((option) =>
         option
-          .setName("ign")
+          .setName("ignName")
           .setDescription("Your in-game name.")
           .setRequired(true)
       )
@@ -172,7 +172,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await ensureUnavaatuTables();
 
   const server = interaction.options.getString("server", true);
-  const ign = interaction.options.getString("ign", true).trim();
+  const ignName = interaction.options.getString("ignName", true).trim();
   const coordinates = interaction.options.getString("coordinates", true).trim();
   const date = interaction.options.getString("date", true);
   const hourUtc = interaction.options.getInteger("time", true);
