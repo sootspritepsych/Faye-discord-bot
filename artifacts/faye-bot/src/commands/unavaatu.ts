@@ -118,7 +118,7 @@ export const data = new SlashCommandBuilder()
       )
       .addStringOption((option) =>
         option
-          .setName("ignName")
+          .setName("in_game_name")
           .setDescription("Your in-game name.")
           .setRequired(true)
       )
