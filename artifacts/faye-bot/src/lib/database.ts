@@ -11,18 +11,16 @@ import { Pool } from "pg";
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 pool.on("error", (err) => {
   console.error("Unexpected Postgres pool error:", err);
 });
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-});
+export const db = drizzle(pool);
 
 export const db = drizzle(pool);
 
