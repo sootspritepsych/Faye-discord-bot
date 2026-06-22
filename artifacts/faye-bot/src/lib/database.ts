@@ -13,6 +13,10 @@ export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+pool.on("error", (err) => {
+  console.error("Unexpected Postgres pool error:", err);
+});
+
 export const db = drizzle(pool);
 
 export const stickyMessages = pgTable("faye_sticky_messages", {
