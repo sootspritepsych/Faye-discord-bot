@@ -176,7 +176,7 @@ export const titleReservations = pgTable("title_reservations", {
   discordUserId: text("discord_user_id").notNull(),
 
   server: text("server").notNull(),
-  ign: text("ign").notNull(),
+  in_game_name: text("in_game_name").notNull(),
   coordinates: text("coordinates").notNull(),
 
   title: text("title").notNull(),
@@ -367,7 +367,7 @@ export async function initDb() {
       guild_id TEXT NOT NULL,
       discord_user_id TEXT NOT NULL,
       server TEXT NOT NULL,
-      ign TEXT NOT NULL,
+      in_game_name TEXT NOT NULL,
       coordinates TEXT NOT NULL,
       title TEXT NOT NULL,
       date TEXT NOT NULL,
