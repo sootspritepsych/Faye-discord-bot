@@ -33,7 +33,7 @@ async function ensureUnavaatuTables() {
       guild_id TEXT NOT NULL,
       discord_user_id TEXT NOT NULL,
       server TEXT NOT NULL,
-      inGamename TEXT NOT NULL,
+      in_game_name TEXT NOT NULL,
       coordinates TEXT NOT NULL,
       title TEXT NOT NULL,
       date TEXT NOT NULL,
@@ -118,7 +118,7 @@ export const data = new SlashCommandBuilder()
       )
       .addStringOption((option) =>
         option
-          .setName("inGamename")
+          .setName("in_game_name")
           .setDescription("Your in-game name.")
           .setRequired(true)
       )
@@ -172,7 +172,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await ensureUnavaatuTables();
 
   const server = interaction.options.getString("server", true);
-  const inGamename = interaction.options.getString("inGamename", true).trim();
+  const in_game_name = interaction.options.getString("in_game_name", true).trim();
   const coordinates = interaction.options.getString("coordinates", true).trim();
   const date = interaction.options.getString("date", true);
   const hourUtc = interaction.options.getInteger("time", true);
@@ -200,7 +200,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const sameinGamenameSameHour = await db
+  const samein_game_nameSameHour = await db
     .select()
     .from(titleReservations)
     .where(
@@ -209,13 +209,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         eq(titleReservations.server, server),
         eq(titleReservations.date, date),
         eq(titleReservations.hourUtc, hourUtc),
-        eq(titleReservations.inGamename, inGamename)
+        eq(titleReservations.ingamename, ingamename)
       )
     );
 
-  if (sameinGamenameSameHour.length > 0) {
+  if (samein_game_nameSameHour.length > 0) {
     await interaction.editReply({
-      content: `❌ **${inGamename}** already has a reservation at that same time.`,
+      content: `❌ **${in_game_name}** already has a reservation at that same time.`,
     });
     return;
   }
@@ -226,7 +226,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const unixStart = Math.floor(start.getTime() / 1000);
 
-  const eventTitle = `UNAVAATU | S${server} | ${title} | ${inGamename}`;
+  const eventTitle = `UNAVAATU | S${server} | ${title} | ${in_game_name}`;
 
   const insertedEvents = await db
     .insert(events)
@@ -235,7 +235,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       eventType: "UNAVAATU",
       title: eventTitle,
       description:
-        `inGamename: ${inGamename}\n` +
+        `in_game_name: ${in_game_name}\n` +
         `Coordinates: ${coordinates}\n` +
         `Reserved by: ${interaction.user.tag}`,
       server,
@@ -252,7 +252,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     guildId: interaction.guildId!,
     discordUserId: interaction.user.id,
     server,
-    inGamename,
+    in_game_name,
     coordinates,
     title,
     date,
@@ -265,7 +265,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     .addFields(
       { name: "Server", value: `S${server}`, inline: true },
       { name: "Title", value: title, inline: true },
-      { name: "Player", value: inGamename, inline: true },
+      { name: "Player", value: in_game_name, inline: true },
       { name: "Coordinates", value: coordinates, inline: false },
       {
         name: "UTC Time",
