@@ -9,6 +9,10 @@ import {
 } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set");
+}
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 5,
@@ -127,10 +131,8 @@ export const welcomeJourneys = pgTable("faye_welcome_journeys", {
 export const guildConfig = pgTable("faye_guild_config", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull().unique(),
-
   staffRoleId: text("staff_role_id"),
   announcementChannelId: text("announcement_channel_id"),
-
   confessionsChannelId: text("confessions_channel_id"),
   suggestionsChannelId: text("suggestions_channel_id"),
   qotdModChannelId: text("qotd_mod_channel_id"),
@@ -168,40 +170,32 @@ export const natureFacts = pgTable("nature_facts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const titleReservations = pgTable("title_reservations", {
-  id: serial("id").primaryKey(),
-
-  eventId: integer("event_id"),
-  guildId: text("guild_id").notNull(),
-  discordUserId: text("discord_user_id").notNull(),
-
-  server: text("server").notNull(),
-  in_game_name: text("in_game_name").notNull(),
-  coordinates: text("coordinates").notNull(),
-
-  title: text("title").notNull(),
-  date: text("date").notNull(),
-  hourUtc: integer("hour_utc").notNull(),
-
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
-
   guildId: text("guild_id").notNull(),
-
   eventType: text("event_type").notNull(),
   title: text("title").notNull(),
   description: text("description"),
-
   server: text("server"),
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
-
   createdBy: text("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const titleReservations = pgTable("title_reservations", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id"),
+  guildId: text("guild_id").notNull(),
+  discordUserId: text("discord_user_id").notNull(),
+  server: text("server").notNull(),
+  inGameName: text("in_game_name").notNull(),
+  coordinates: text("coordinates").notNull(),
+  title: text("title").notNull(),
+  date: text("date").notNull(),
+  hourUtc: integer("hour_utc").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const tickets = pgTable("tickets", {
@@ -242,6 +236,7 @@ export async function initDb() {
       welcome_channel_id TEXT,
       wisdom_channel_id TEXT,
       wisdom_post_hour INTEGER DEFAULT 8,
+      wisdom_ping_role_id TEXT,
       updated_at TIMESTAMP DEFAULT NOW()
     );
 
@@ -361,9 +356,24 @@ export async function initDb() {
       fact TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     );
-    
+
+    CREATE TABLE IF NOT EXISTS events (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      server TEXT,
+      start_time TIMESTAMP NOT NULL,
+      end_time TIMESTAMP NOT NULL,
+      created_by TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS title_reservations (
       id SERIAL PRIMARY KEY,
+      event_id INTEGER,
       guild_id TEXT NOT NULL,
       discord_user_id TEXT NOT NULL,
       server TEXT NOT NULL,
@@ -372,22 +382,32 @@ export async function initDb() {
       title TEXT NOT NULL,
       date TEXT NOT NULL,
       hour_utc INTEGER NOT NULL,
-      calendar_event_id TEXT,
       created_at TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS tickets (
-  id SERIAL PRIMARY KEY,
-  guild_id TEXT NOT NULL,
-  channel_id TEXT NOT NULL,
-  user_id TEXT NOT NULL,
-  username TEXT,
-  status TEXT NOT NULL DEFAULT 'open',
-  claimed_by TEXT,
-  transcript TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  closed_at TIMESTAMP
-);
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      username TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      claimed_by TEXT,
+      transcript TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      closed_at TIMESTAMP
+    );
+
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS event_id INTEGER;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS guild_id TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS discord_user_id TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS server TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS in_game_name TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS coordinates TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS title TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS date TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS hour_utc INTEGER;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
 
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
@@ -398,6 +418,7 @@ export async function initDb() {
 
     ALTER TABLE faye_reminders ADD COLUMN IF NOT EXISTS event_name TEXT;
 
+    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_mod_channel_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_channel_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_hour INTEGER DEFAULT 9;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_channel_id TEXT;
@@ -405,9 +426,8 @@ export async function initDb() {
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS staff_role_id TEXT;
     ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS announcement_channel_id TEXT;
-    
-    ALTER TABLE faye_sticky_messages
-    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+
+    ALTER TABLE faye_sticky_messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
   `);
 
   console.log("🌿 Faye database tables initialized");
