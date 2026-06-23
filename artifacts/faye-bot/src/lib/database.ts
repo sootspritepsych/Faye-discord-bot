@@ -371,43 +371,46 @@ export async function initDb() {
       updated_at TIMESTAMP DEFAULT NOW()
     );
 
-    CREATE TABLE IF NOT EXISTS title_reservations (
-      id SERIAL PRIMARY KEY,
-      event_id INTEGER,
-      guild_id TEXT NOT NULL,
-      discord_user_id TEXT NOT NULL,
-      server TEXT NOT NULL,
-      in_game_name TEXT NOT NULL,
-      coordinates TEXT NOT NULL,
-      title TEXT NOT NULL,
-      date TEXT NOT NULL,
-      hour_utc INTEGER NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW()
-    );
+   CREATE TABLE IF NOT EXISTS title_reservations (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER,
+  guild_id TEXT NOT NULL,
+  discord_user_id TEXT NOT NULL,
+  server TEXT NOT NULL,
+  in_game_name TEXT NOT NULL,
+  coordinates TEXT NOT NULL,
+  title TEXT NOT NULL,
+  date TEXT NOT NULL,
+  hour_utc INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
 
-    CREATE TABLE IF NOT EXISTS tickets (
-      id SERIAL PRIMARY KEY,
-      guild_id TEXT NOT NULL,
-      channel_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
-      username TEXT,
-      status TEXT NOT NULL DEFAULT 'open',
-      claimed_by TEXT,
-      transcript TEXT,
-      created_at TIMESTAMP DEFAULT NOW(),
-      closed_at TIMESTAMP
-    );
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS event_id INTEGER;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS guild_id TEXT;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS discord_user_id TEXT;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS server TEXT;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS in_game_name TEXT;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS coordinates TEXT;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS date TEXT;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS hour_utc INTEGER;
+ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
 
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS event_id INTEGER;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS guild_id TEXT;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS discord_user_id TEXT;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS server TEXT;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS in_game_name TEXT;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS coordinates TEXT;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS title TEXT;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS date TEXT;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS hour_utc INTEGER;
-    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'title_reservations'
+    AND column_name = 'ign'
+  ) THEN
+    UPDATE title_reservations
+    SET in_game_name = ign
+    WHERE in_game_name IS NULL;
+
+    ALTER TABLE title_reservations DROP COLUMN ign;
+  END IF;
+END $$;
 
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
     ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
