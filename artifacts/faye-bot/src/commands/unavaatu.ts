@@ -13,66 +13,34 @@ const ALLOWED_HOURS_UTC = [
 ];
 
 async function ensureUnavaatuTables() {
-
   await db.execute(sql`
-
-    DROP TABLE IF EXISTS title_reservations;
-
-    CREATE TABLE title_reservations (
-
-      id SERIAL PRIMARY KEY,
-
-      event_id INTEGER,
-
-      guild_id TEXT NOT NULL,
-
-      discord_user_id TEXT NOT NULL,
-
-      server TEXT NOT NULL,
-
-      in_game_name TEXT NOT NULL,
-
-      coordinates TEXT NOT NULL,
-
-      title TEXT NOT NULL,
-
-      date TEXT NOT NULL,
-
-      hour_utc INTEGER NOT NULL,
-
-      created_at TIMESTAMP DEFAULT NOW()
-
-    );
-
     CREATE TABLE IF NOT EXISTS events (
-
       id SERIAL PRIMARY KEY,
-
       guild_id TEXT NOT NULL,
-
       event_type TEXT NOT NULL,
-
       title TEXT NOT NULL,
-
       description TEXT,
-
       server TEXT,
-
       start_time TIMESTAMP NOT NULL,
-
       end_time TIMESTAMP NOT NULL,
-
       created_by TEXT,
-
       created_at TIMESTAMP DEFAULT NOW(),
-
       updated_at TIMESTAMP DEFAULT NOW()
-
     );
 
-  `);
-
-}
+    CREATE TABLE IF NOT EXISTS title_reservations (
+      id SERIAL PRIMARY KEY,
+      event_id INTEGER,
+      guild_id TEXT NOT NULL,
+      discord_user_id TEXT NOT NULL,
+      server TEXT NOT NULL,
+      in_game_name TEXT NOT NULL,
+      coordinates TEXT NOT NULL,
+      title TEXT NOT NULL,
+      date TEXT NOT NULL,
+      hour_utc INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
 
     ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS event_id INTEGER;
     ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS guild_id TEXT;
