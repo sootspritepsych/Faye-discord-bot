@@ -4,13 +4,14 @@ import {
   EmbedBuilder,
   TextChannel,
 } from "discord.js";
-import { and, eq , sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, events, titleReservations } from "../lib/database";
 
 const ALLOWED_HOURS_UTC = [
   10, 11, 12, 13, 14, 15, 16, 17,
   18, 19, 20, 21, 22, 23, 0, 1,
 ];
+
 async function ensureUnavaatuTables() {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS events (
@@ -41,8 +42,16 @@ async function ensureUnavaatuTables() {
       created_at TIMESTAMP DEFAULT NOW()
     );
 
-    ALTER TABLE title_reservations
-    ADD COLUMN IF NOT EXISTS event_id INTEGER;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS event_id INTEGER;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS guild_id TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS discord_user_id TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS server TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS in_game_name TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS coordinates TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS title TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS date TEXT;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS hour_utc INTEGER;
+    ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
   `);
 }
 
@@ -166,13 +175,16 @@ export const data = new SlashCommandBuilder()
           )
       )
   );
+
 export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true });
 
   await ensureUnavaatuTables();
 
   const server = interaction.options.getString("server", true);
-  const in_game_name = interaction.options.getString("in_game_name", true).trim();
+  const inGameName = interaction.options
+    .getString("in_game_name", true)
+    .trim();
   const coordinates = interaction.options.getString("coordinates", true).trim();
   const date = interaction.options.getString("date", true);
   const hourUtc = interaction.options.getInteger("time", true);
@@ -200,7 +212,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const samein_game_nameSameHour = await db
+  const sameNameSameHour = await db
     .select()
     .from(titleReservations)
     .where(
@@ -209,13 +221,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         eq(titleReservations.server, server),
         eq(titleReservations.date, date),
         eq(titleReservations.hourUtc, hourUtc),
-        eq(titleReservations.ingamename, ingamename)
+        eq(titleReservations.inGameName, inGameName)
       )
     );
 
-  if (samein_game_nameSameHour.length > 0) {
+  if (sameNameSameHour.length > 0) {
     await interaction.editReply({
-      content: `❌ **${in_game_name}** already has a reservation at that same time.`,
+      content: `❌ **${inGameName}** already has a reservation at that same time.`,
     });
     return;
   }
@@ -225,8 +237,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   end.setUTCHours(end.getUTCHours() + 1);
 
   const unixStart = Math.floor(start.getTime() / 1000);
-
-  const eventTitle = `UNAVAATU | S${server} | ${title} | ${in_game_name}`;
+  const eventTitle = `UNAVAATU | S${server} | ${title} | ${inGameName}`;
 
   const insertedEvents = await db
     .insert(events)
@@ -235,7 +246,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       eventType: "UNAVAATU",
       title: eventTitle,
       description:
-        `in_game_name: ${in_game_name}\n` +
+        `In-game name: ${inGameName}\n` +
         `Coordinates: ${coordinates}\n` +
         `Reserved by: ${interaction.user.tag}`,
       server,
@@ -252,7 +263,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     guildId: interaction.guildId!,
     discordUserId: interaction.user.id,
     server,
-    in_game_name,
+    inGameName,
     coordinates,
     title,
     date,
@@ -265,7 +276,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     .addFields(
       { name: "Server", value: `S${server}`, inline: true },
       { name: "Title", value: title, inline: true },
-      { name: "Player", value: in_game_name, inline: true },
+      { name: "Player", value: inGameName, inline: true },
       { name: "Coordinates", value: coordinates, inline: false },
       {
         name: "UTC Time",
@@ -303,4 +314,3 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     content: `✅ Your Unavaatu reservation is confirmed: **${eventTitle}**`,
   });
 }
-
