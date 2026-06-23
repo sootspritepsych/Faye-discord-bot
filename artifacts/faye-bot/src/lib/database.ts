@@ -22,8 +22,6 @@ pool.on("error", (err) => {
 
 export const db = drizzle(pool);
 
-export const db = drizzle(pool);
-
 export const stickyMessages = pgTable("faye_sticky_messages", {
   id: serial("id").primaryKey(),
   channelId: text("channel_id").notNull().unique(),
