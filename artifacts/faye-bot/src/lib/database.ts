@@ -142,9 +142,10 @@ export const guildConfig = pgTable("faye_guild_config", {
   wisdomChannelId: text("wisdom_channel_id"),
   wisdomPostHour: integer("wisdom_post_hour").default(8),
   wisdomPingRoleId: text("wisdom_ping_role_id"),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  adultQotdPingRoleId: text("adult_qotd_ping_role_id"),
   adultQotdChannelId: text("adult_qotd_channel_id"),
   adultQotdPostHour: integer("adult_qotd_post_hour").default(20),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const conversationHistory = pgTable("conversation_history", {
@@ -416,6 +417,7 @@ ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS title TEXT;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS date TEXT;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS hour_utc INTEGER;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS adult_qotd_ping_role_id TEXT;
 
 DO $$
 BEGIN
