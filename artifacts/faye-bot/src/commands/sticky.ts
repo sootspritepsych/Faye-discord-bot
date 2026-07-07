@@ -71,14 +71,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           channelId: interaction.channelId,
           content,
           lastMessageId: null,
-          updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: stickyMessages.channelId,
           set: {
             content,
             lastMessageId: null,
-            updatedAt: new Date(),
           },
         })
         .returning();
