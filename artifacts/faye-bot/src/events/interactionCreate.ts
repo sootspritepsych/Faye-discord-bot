@@ -10,7 +10,7 @@ import {
   handleConfessionReplyModal,
 } from "./confessionHandlers";
 import { handleTicketButton } from "./ticketHandlers";
-import { db, wisdomQuotes } from "../lib/database";
+import { db, wisdomQuotes, adultQotdQuestions } from "../lib/database";
 
 export default function registerInteractionCreateEvent(client: Client) {
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
@@ -26,13 +26,11 @@ export default function registerInteractionCreateEvent(client: Client) {
 
       // Buttons
       if (interaction.isButton()) {
-        // Confession reply button
         if (interaction.customId.startsWith("confess-reply_")) {
           await handleConfessionReplyButton(interaction);
           return;
         }
 
-        // Ticket buttons
         if (
           interaction.customId === "ticket_open" ||
           interaction.customId === "ticket_close" ||
@@ -58,7 +56,7 @@ export default function registerInteractionCreateEvent(client: Client) {
           const rawQuotes = interaction.fields.getTextInputValue("quotes");
 
           const quotes = rawQuotes
-            .split("\n")
+            .split(/\r?\n/)
             .map((q) => q.trim())
             .filter((q) => q.length > 0);
 
@@ -98,6 +96,49 @@ export default function registerInteractionCreateEvent(client: Client) {
               `⏭️ Skipped duplicates: **${
                 uniqueQuotes.length - newQuotes.length
               }**`,
+            ephemeral: true,
+          });
+
+          return;
+        }
+
+        // Bulk Adult QOTD import modal
+        if (interaction.customId === "adultqotd_bulkadd_modal") {
+          if (!interaction.guildId) {
+            await interaction.reply({
+              content: "This command can only be used in a server.",
+              ephemeral: true,
+            });
+            return;
+          }
+
+          const rawQuestions = interaction.fields.getTextInputValue("questions");
+
+          const questions = rawQuestions
+            .split(/\r?\n/)
+            .map((q) => q.trim())
+            .filter((q) => q.length > 0);
+
+          if (questions.length === 0) {
+            await interaction.reply({
+              content:
+                "No questions were found. Put each question on its own line.",
+              ephemeral: true,
+            });
+            return;
+          }
+
+          const uniqueQuestions = [...new Set(questions)];
+
+          await db.insert(adultQotdQuestions).values(
+            uniqueQuestions.map((question) => ({
+              guildId: interaction.guildId!,
+              question,
+            }))
+          );
+
+          await interaction.reply({
+            content: `🌹 Added **${uniqueQuestions.length}** Adult QOTD question(s).`,
             ephemeral: true,
           });
 
