@@ -1,8 +1,4 @@
-import {
-  Client,
-  EmbedBuilder,
-  TextBasedChannel,
-} from "discord.js";
+import { Client, EmbedBuilder, TextBasedChannel } from "discord.js";
 import { db, stickyMessages } from "./database";
 import { eq } from "drizzle-orm";
 
@@ -13,10 +9,16 @@ type SendableTextChannel = TextBasedChannel & {
   };
 };
 
-export async function updateStickyMessage(
-  client: Client,
-  channelId: string
-) {
+const stickyLocks = new Set<string>();
+
+export async function updateStickyMessage(client: Client, channelId: string) {
+  if (stickyLocks.has(channelId)) {
+    console.log("Sticky update already running, skipping:", channelId);
+    return;
+  }
+
+  stickyLocks.add(channelId);
+
   try {
     console.log("Checking sticky for channel:", channelId);
 
@@ -30,8 +32,6 @@ export async function updateStickyMessage(
       return;
     }
 
-    console.log("Sticky found for channel:", channelId);
-
     const channel = await client.channels.fetch(channelId);
 
     if (!channel) {
@@ -39,7 +39,11 @@ export async function updateStickyMessage(
       return;
     }
 
-    if (!channel.isTextBased() || !("send" in channel) || !("messages" in channel)) {
+    if (
+      !channel.isTextBased() ||
+      !("send" in channel) ||
+      !("messages" in channel)
+    ) {
       console.log("Sticky skipped: channel is not sendable", channelId);
       return;
     }
@@ -51,7 +55,7 @@ export async function updateStickyMessage(
         const oldMessage = await textChannel.messages.fetch(sticky.lastMessageId);
         await oldMessage.delete();
         console.log("Old sticky deleted:", sticky.lastMessageId);
-      } catch (err) {
+      } catch {
         console.log("Old sticky could not be deleted. Continuing anyway.");
       }
     }
@@ -76,11 +80,14 @@ export async function updateStickyMessage(
       .update(stickyMessages)
       .set({
         lastMessageId: newMessage.id,
+        updatedAt: new Date(),
       })
       .where(eq(stickyMessages.channelId, channelId));
 
     console.log("Sticky updated successfully:", newMessage.id);
   } catch (err) {
     console.error("Error updating sticky message:", err);
+  } finally {
+    stickyLocks.delete(channelId);
   }
 }
