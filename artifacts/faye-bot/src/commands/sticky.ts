@@ -7,10 +7,7 @@ import { eq } from "drizzle-orm";
 import { updateStickyMessage } from "../lib/stickyManager";
 
 function formatStickyContent(content: string) {
-  return content
-    .replace(/\\n/g, "\n")
-    .replace(/\r\n/g, "\n")
-    .trim();
+  return content.replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
 }
 
 export const data = new SlashCommandBuilder()
@@ -19,7 +16,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("set")
-      .setDescription("[Mod] Set or update the sticky message for the current channel")
+      .setDescription("[Mod] Set or update the sticky message for this channel")
       .addStringOption((opt) =>
         opt
           .setName("message")
@@ -31,12 +28,10 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("remove")
-      .setDescription("[Mod] Remove the sticky message from the current channel")
+      .setDescription("[Mod] Remove the sticky message from this channel")
   )
   .addSubcommand((sub) =>
-    sub
-      .setName("view")
-      .setDescription("View the current sticky message in this channel")
+    sub.setName("view").setDescription("View the current sticky message")
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -59,44 +54,36 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const rawContent = interaction.options.getString("message", true);
     const content = formatStickyContent(rawContent);
 
-    console.log("🌿 STICKY SET COMMAND RUNNING");
-    console.log("DATABASE_URL exists?", !!process.env.DATABASE_URL);
-    console.log("Channel ID:", interaction.channelId);
-    console.log("Content preview:", content.slice(0, 100));
-
     try {
-      const saved = await db
+      await db
         .insert(stickyMessages)
         .values({
           channelId: interaction.channelId,
           content,
           lastMessageId: null,
+          updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: stickyMessages.channelId,
           set: {
             content,
             lastMessageId: null,
+            updatedAt: new Date(),
           },
-        })
-        .returning();
+        });
 
-      console.log("✅ Sticky saved to DB:", saved);
+      await updateStickyMessage(interaction.client, interaction.channelId);
+
+      await interaction.editReply("Sticky message updated. 🍃");
+      return;
     } catch (error) {
-      console.error("❌ Sticky DB save failed:", error);
+      console.error("Sticky DB save failed:", error);
 
       await interaction.editReply(
-        "Sticky message could not be saved to the database. Check Railway logs. ❌"
+        "Sticky message could not be saved. Check Railway logs. ❌"
       );
       return;
     }
-
-    await updateStickyMessage(interaction.client, interaction.channelId);
-
-    await interaction.editReply(
-      "🌿 DEBUG sticky command ran and attempted DB save."
-    );
-    return;
   }
 
   if (sub === "remove") {
@@ -121,7 +108,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           await msg.delete();
         }
       } catch {
-        // already gone
+        console.log("Sticky message already deleted.");
       }
     }
 
