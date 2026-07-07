@@ -20,6 +20,7 @@ import * as unavaatu from "./unavaatu";
 import { complimentCommand } from "./compliment";
 import * as ticket from "./ticket";
 import * as addwquotes from "./addwquotes";
+import * as adultqotd from "./adultqotd";
 
 export interface Command {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,6 +50,7 @@ const commandList: Command[] = [
   unavaatu,
   complimentCommand,
   ticket,
+  adultqotd,
 ];
 
 export const commands = new Collection<string, Command>();
