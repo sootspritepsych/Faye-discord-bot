@@ -1,60 +1,104 @@
-import { Client, TextChannel, ChannelType } from "discord.js";
-import { and, eq } from "drizzle-orm";
+import cron from "node-cron";
+import { Client, TextChannel, ChannelType, EmbedBuilder } from "discord.js";
 import { db, adultQotdQuestions, guildConfig } from "./database";
+import { eq, and } from "drizzle-orm";
 
-const postedToday = new Set<string>();
+const DEFAULT_ADULT_QOTD = [
+  "What's your biggest green flag in a partner?",
+  "What's your biggest dating red flag?",
+  "What's the most attractive personality trait?",
+  "What's your ideal date night?",
+  "What's your biggest relationship hot take?",
+];
 
-export function startAdultQotdScheduler(client: Client) {
-  setInterval(async () => {
-    try {
-      const now = new Date();
-      const hour = now.getHours();
-      const todayKey = now.toISOString().slice(0, 10);
+export async function startAdultQotdScheduler(client: Client) {
+  cron.schedule("0 * * * *", async () => {
+    const now = new Date();
+    const currentHour = now.getUTCHours();
 
-      const configs = await db.select().from(guildConfig);
+    const allConfigs = await db.select().from(guildConfig);
 
-      for (const config of configs) {
-        if (!config.adultQotdChannelId) continue;
-        if ((config.adultQotdPostHour ?? 20) !== hour) continue;
+    for (const config of allConfigs) {
+      if (!config.adultQotdChannelId) continue;
+      if ((config.adultQotdPostHour ?? 20) !== currentHour) continue;
 
-        const postKey = `${config.guildId}-${todayKey}`;
-        if (postedToday.has(postKey)) continue;
-
-        const questionRows = await db
-          .select()
-          .from(adultQotdQuestions)
-          .where(
-            and(
-              eq(adultQotdQuestions.guildId, config.guildId),
-              eq(adultQotdQuestions.used, false)
-            )
-          )
-          .limit(1);
-
-        if (questionRows.length === 0) continue;
-
-        const question = questionRows[0];
-
-        const channel = await client.channels.fetch(config.adultQotdChannelId);
-
-        if (!channel || channel.type !== ChannelType.GuildText) continue;
-
-        await (channel as TextChannel).send({
-          content:
-            `🌹 **Adult QOTD**\n\n` +
-            `${question.question}\n\n` +
-            `Keep it respectful. Verified 18+ only.`,
-        });
-
-        await db
-          .update(adultQotdQuestions)
-          .set({ used: true })
-          .where(eq(adultQotdQuestions.id, question.id));
-
-        postedToday.add(postKey);
+      try {
+        await postDailyAdultQotd(
+          client,
+          config.guildId,
+          config.adultQotdChannelId
+        );
+      } catch (err) {
+        console.error(
+          `Error posting Adult QOTD for guild ${config.guildId}:`,
+          err
+        );
       }
-    } catch (err) {
-      console.error("Adult QOTD scheduler error:", err);
     }
-  }, 60 * 1000);
+  });
+
+  console.log("🌹 Adult QOTD scheduler started");
+}
+
+export async function postDailyAdultQotd(
+  client: Client,
+  guildId: string,
+  channelId: string
+) {
+  const channel = await client.channels.fetch(channelId);
+  if (!channel || channel.type !== ChannelType.GuildText) return;
+
+  const [unused] = await db
+    .select()
+    .from(adultQotdQuestions)
+    .where(
+      and(
+        eq(adultQotdQuestions.guildId, guildId),
+        eq(adultQotdQuestions.used, false)
+      )
+    )
+    .limit(1);
+
+  let question: string;
+
+  if (unused) {
+    question = unused.question;
+
+    await db
+      .update(adultQotdQuestions)
+      .set({ used: true })
+      .where(eq(adultQotdQuestions.id, unused.id));
+  } else {
+    const all = await db
+      .select()
+      .from(adultQotdQuestions)
+      .where(eq(adultQotdQuestions.guildId, guildId));
+
+    if (all.length > 0) {
+      await db
+        .update(adultQotdQuestions)
+        .set({ used: false })
+        .where(eq(adultQotdQuestions.guildId, guildId));
+
+      const random = all[Math.floor(Math.random() * all.length)];
+      question = random.question;
+
+      await db
+        .update(adultQotdQuestions)
+        .set({ used: true })
+        .where(eq(adultQotdQuestions.id, random.id));
+    } else {
+      question =
+        DEFAULT_ADULT_QOTD[Math.floor(Math.random() * DEFAULT_ADULT_QOTD.length)];
+    }
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(0xff8fab)
+    .setTitle("🌹 Adult QOTD")
+    .setDescription(question)
+    .setFooter({ text: "Verified 18+ only · Keep it respectful" })
+    .setTimestamp();
+
+  await (channel as TextChannel).send({ embeds: [embed] });
 }
