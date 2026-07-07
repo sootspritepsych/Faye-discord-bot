@@ -1,8 +1,8 @@
 import { Client, Events, Message } from "discord.js";
+import { eq } from "drizzle-orm";
 import { getFayeResponse } from "../lib/openai";
 import { updateStickyMessage } from "../lib/stickyManager";
 import { db, stickyMessages } from "../lib/database";
-import { eq } from "drizzle-orm";
 import { getRecentConversation, saveConversationMessage } from "../lib/memory";
 import { getUserMemories, saveUserMemory } from "../lib/userMemory";
 
@@ -15,10 +15,6 @@ async function handleFayeMessage(
   message: Message,
   content: string
 ) {
-  console.log(
-    `HANDLE_FAYE_MESSAGE | msg=${message.id} | user=${message.author.username}`
-  );
-
   const userId = message.author.id;
   const now = Date.now();
   const lastUsed = cooldowns.get(userId) ?? 0;
@@ -42,11 +38,7 @@ async function handleFayeMessage(
   if (lowerContent.startsWith("remember that ")) {
     const memory = content.slice("remember that ".length).trim();
 
-    await saveUserMemory(
-      message.author.id,
-      message.author.username,
-      memory
-    );
+    await saveUserMemory(message.author.id, message.author.username, memory);
 
     await message.reply(
       "I'll tuck that memory safely into the garden, dear traveler. 🌿"
@@ -73,11 +65,7 @@ async function handleFayeMessage(
   );
 
   if (shouldSaveNaturalMemory && content.length <= 200) {
-    await saveUserMemory(
-      message.author.id,
-      message.author.username,
-      content
-    );
+    await saveUserMemory(message.author.id, message.author.username, content);
   }
 
   if ("sendTyping" in message.channel) {
@@ -122,44 +110,39 @@ export default function registerMessageCreateEvent(client: Client) {
   console.log("REGISTERING messageCreate event");
 
   client.on(Events.MessageCreate, async (message: Message) => {
-  try {
-    console.log("MESSAGE CREATE FIRED:", {
-      messageId: message.id,
-      channelId: message.channelId,
-      author: message.author.username,
-      isBot: message.author.bot,
-      content: message.content,
-    });
-
-    // Ignore other bots
-if (message.author.bot && message.author.id !== client.user?.id) return;
-
-// Ignore Faye's own sticky messages so they don't cause a loop
-if (message.author.id === client.user?.id) {
-  const [sticky] = await db
-    .select()
-    .from(stickyMessages)
-    .where(eq(stickyMessages.channelId, message.channelId));
-
-  if (sticky && message.id === sticky.lastMessageId) {
-    return;
-  }
-}
-
-    console.log("CHECKING STICKY TABLE FOR:", message.channelId);
+    try {
+      console.log("MESSAGE CREATE FIRED:", {
+        messageId: message.id,
+        channelId: message.channelId,
+        author: message.author.username,
+        isBot: message.author.bot,
+        content: message.content,
+      });
 
       const [sticky] = await db
         .select()
         .from(stickyMessages)
         .where(eq(stickyMessages.channelId, message.channelId));
 
-      console.log("STICKY RESULT:", sticky);
+      // Ignore other bots completely
+      if (message.author.bot && message.author.id !== client.user?.id) return;
+
+      // Allow Faye's normal replies to trigger sticky once,
+      // but ignore Faye's own sticky message so it doesn't loop
+      if (message.author.id === client.user?.id) {
+        if (sticky?.lastMessageId === message.id) {
+          console.log("IGNORING FAYE STICKY MESSAGE");
+          return;
+        }
+
+        console.log("ALLOWING FAYE NON-STICKY MESSAGE TO TRIGGER STICKY ONCE");
+      }
 
       if (sticky && message.id !== sticky.lastMessageId) {
         console.log("TRIGGERING STICKY UPDATE FOR:", message.channelId);
 
         setTimeout(() => {
-          updateStickyMessage(client, message.channelId);
+          updateStickyMessage(client, message.channelId).catch(console.error);
         }, 1000);
       }
 
