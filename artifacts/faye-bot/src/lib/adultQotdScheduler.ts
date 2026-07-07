@@ -97,7 +97,6 @@ export async function postDailyAdultQotd(
     .setColor(0xff8fab)
     .setTitle("🌹 Adult QOTD")
     .setDescription(question)
-    .setFooter({ text: "Verified 18+ only · Keep it respectful" })
     .setTimestamp();
 
  await (channel as TextChannel).send({
