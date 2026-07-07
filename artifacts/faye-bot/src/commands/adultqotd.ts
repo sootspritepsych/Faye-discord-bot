@@ -4,6 +4,10 @@ import {
   PermissionFlagsBits,
   ChannelType,
   TextChannel,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder,
 } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { db, adultQotdQuestions, guildConfig } from "../lib/database";
@@ -46,13 +50,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("bulkadd")
-      .setDescription("Bulk add Adult QOTD questions, one per line.")
-      .addStringOption((option) =>
-        option
-          .setName("questions")
-          .setDescription("Paste questions, one per line.")
-          .setRequired(true)
-      )
+      .setDescription("Open a popup to bulk add Adult QOTD questions.")
   )
   .addSubcommand((sub) =>
     sub.setName("use").setDescription("Post one Adult QOTD immediately.")
@@ -93,10 +91,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       });
 
     await interaction.reply({
-      content: `🌹 Adult QOTD set to <#${channel.id}> at hour **${hour}:00**.`,
+      content: `🌹 Adult QOTD set to <#${channel.id}> at hour **${hour}:00 UTC**.`,
       ephemeral: true,
     });
-
     return;
   }
 
@@ -112,40 +109,31 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       content: "🌹 Adult QOTD question added.",
       ephemeral: true,
     });
-
     return;
   }
 
   if (subcommand === "bulkadd") {
-    const raw = interaction.options.getString("questions", true);
+    const modal = new ModalBuilder()
+      .setCustomId("adultqotd_bulkadd_modal")
+      .setTitle("Add Adult QOTDs");
 
-    const questions = raw
-      .split("\n")
-      .map((q) => q.trim())
-      .filter((q) => q.length > 0);
+    const questionsInput = new TextInputBuilder()
+      .setCustomId("questions")
+      .setLabel("Paste questions, one per line")
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true)
+      .setMaxLength(4000)
+      .setPlaceholder(
+        "What's your biggest turn-on?\nWhat's your biggest red flag?\nLights on or lights off?"
+      );
 
-    const uniqueQuestions = [...new Set(questions)];
-
-    if (uniqueQuestions.length === 0) {
-      await interaction.reply({
-        content: "No questions found.",
-        ephemeral: true,
-      });
-      return;
-    }
-
-    await db.insert(adultQotdQuestions).values(
-      uniqueQuestions.map((question) => ({
-        guildId: interaction.guildId!,
-        question,
-      }))
+    const row = new ActionRowBuilder<TextInputBuilder>().addComponents(
+      questionsInput
     );
 
-    await interaction.reply({
-      content: `🌹 Added **${uniqueQuestions.length}** Adult QOTD question(s).`,
-      ephemeral: true,
-    });
+    modal.addComponents(row);
 
+    await interaction.showModal(modal);
     return;
   }
 
@@ -213,7 +201,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       content: "🌹 Adult QOTD posted.",
       ephemeral: true,
     });
-
     return;
   }
 
@@ -227,7 +214,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       content: "🌹 All Adult QOTD questions have been reset to unused.",
       ephemeral: true,
     });
-
     return;
   }
 }
