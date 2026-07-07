@@ -100,5 +100,7 @@ export async function postDailyAdultQotd(
     .setFooter({ text: "Verified 18+ only · Keep it respectful" })
     .setTimestamp();
 
-  await (channel as TextChannel).send({ embeds: [embed] });
-}
+ await (channel as TextChannel).send({
+  content: "<@&1395888174609338440>",
+  embeds: [embed],
+});
