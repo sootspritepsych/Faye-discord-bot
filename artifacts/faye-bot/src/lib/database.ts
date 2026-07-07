@@ -143,6 +143,8 @@ export const guildConfig = pgTable("faye_guild_config", {
   wisdomPostHour: integer("wisdom_post_hour").default(8),
   wisdomPingRoleId: text("wisdom_ping_role_id"),
   updatedAt: timestamp("updated_at").defaultNow(),
+  adultQotdChannelId: text("adult_qotd_channel_id"),
+  adultQotdPostHour: integer("adult_qotd_post_hour").default(20),
 });
 
 export const conversationHistory = pgTable("conversation_history", {
@@ -209,6 +211,14 @@ export const tickets = pgTable("tickets", {
   transcript: text("transcript"),
   createdAt: timestamp("created_at").defaultNow(),
   closedAt: timestamp("closed_at"),
+});
+
+export const adultQotdQuestions = pgTable("faye_adult_qotd_questions", {
+  id: serial("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  question: text("question").notNull(),
+  used: boolean("used").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export async function initDb() {
@@ -384,6 +394,17 @@ export async function initDb() {
   hour_utc INTEGER NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS faye_adult_qotd_questions (
+  id SERIAL PRIMARY KEY,
+  guild_id TEXT NOT NULL,
+  question TEXT NOT NULL,
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS adult_qotd_channel_id TEXT;
+ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS adult_qotd_post_hour INTEGER DEFAULT 20;
 
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS event_id INTEGER;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS guild_id TEXT;
