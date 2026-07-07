@@ -10,6 +10,8 @@ const PREFIX = "!f";
 const cooldowns = new Map<string, number>();
 const COOLDOWN_MS = 5000;
 
+let messageCreateRegistered = false;
+
 async function handleFayeMessage(
   client: Client,
   message: Message,
@@ -37,13 +39,8 @@ async function handleFayeMessage(
 
   if (lowerContent.startsWith("remember that ")) {
     const memory = content.slice("remember that ".length).trim();
-
     await saveUserMemory(message.author.id, message.author.username, memory);
-
-    await message.reply(
-      "I'll tuck that memory safely into the garden, dear traveler. 🌿"
-    );
-
+    await message.reply("I'll tuck that memory safely into the garden. 🌿");
     return;
   }
 
@@ -60,11 +57,10 @@ async function handleFayeMessage(
     "i'm ",
   ];
 
-  const shouldSaveNaturalMemory = naturalMemoryPatterns.some((pattern) =>
-    lowerContent.includes(pattern)
-  );
-
-  if (shouldSaveNaturalMemory && content.length <= 200) {
+  if (
+    naturalMemoryPatterns.some((pattern) => lowerContent.includes(pattern)) &&
+    content.length <= 200
+  ) {
     await saveUserMemory(message.author.id, message.author.username, content);
   }
 
@@ -107,40 +103,29 @@ async function handleFayeMessage(
 }
 
 export default function registerMessageCreateEvent(client: Client) {
+  if (messageCreateRegistered) {
+    console.log("messageCreate already registered, skipping");
+    return;
+  }
+
+  messageCreateRegistered = true;
+
   console.log("REGISTERING messageCreate event");
 
   client.on(Events.MessageCreate, async (message: Message) => {
     try {
-      console.log("MESSAGE CREATE FIRED:", {
-        messageId: message.id,
-        channelId: message.channelId,
-        author: message.author.username,
-        isBot: message.author.bot,
-        content: message.content,
-      });
-
       const [sticky] = await db
         .select()
         .from(stickyMessages)
         .where(eq(stickyMessages.channelId, message.channelId));
 
-      // Ignore other bots completely
       if (message.author.bot && message.author.id !== client.user?.id) return;
 
-      // Allow Faye's normal replies to trigger sticky once,
-      // but ignore Faye's own sticky message so it doesn't loop
       if (message.author.id === client.user?.id) {
-        if (sticky?.lastMessageId === message.id) {
-          console.log("IGNORING FAYE STICKY MESSAGE");
-          return;
-        }
-
-        console.log("ALLOWING FAYE NON-STICKY MESSAGE TO TRIGGER STICKY ONCE");
+        if (sticky?.lastMessageId === message.id) return;
       }
 
       if (sticky && message.id !== sticky.lastMessageId) {
-        console.log("TRIGGERING STICKY UPDATE FOR:", message.channelId);
-
         setTimeout(() => {
           updateStickyMessage(client, message.channelId).catch(console.error);
         }, 1000);
