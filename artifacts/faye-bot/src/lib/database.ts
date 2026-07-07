@@ -142,9 +142,6 @@ export const guildConfig = pgTable("faye_guild_config", {
   wisdomChannelId: text("wisdom_channel_id"),
   wisdomPostHour: integer("wisdom_post_hour").default(8),
   wisdomPingRoleId: text("wisdom_ping_role_id"),
-  adultQotdPingRoleId: text("adult_qotd_ping_role_id"),
-  adultQotdChannelId: text("adult_qotd_channel_id"),
-  adultQotdPostHour: integer("adult_qotd_post_hour").default(20),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -212,14 +209,6 @@ export const tickets = pgTable("tickets", {
   transcript: text("transcript"),
   createdAt: timestamp("created_at").defaultNow(),
   closedAt: timestamp("closed_at"),
-});
-
-export const adultQotdQuestions = pgTable("faye_adult_qotd_questions", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  question: text("question").notNull(),
-  used: boolean("used").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export async function initDb() {
@@ -396,17 +385,6 @@ export async function initDb() {
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS faye_adult_qotd_questions (
-  id SERIAL PRIMARY KEY,
-  guild_id TEXT NOT NULL,
-  question TEXT NOT NULL,
-  used BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS adult_qotd_channel_id TEXT;
-ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS adult_qotd_post_hour INTEGER DEFAULT 20;
-
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS event_id INTEGER;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS guild_id TEXT;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS discord_user_id TEXT;
@@ -417,7 +395,6 @@ ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS title TEXT;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS date TEXT;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS hour_utc INTEGER;
 ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
-ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS adult_qotd_ping_role_id TEXT;
 
 DO $$
 BEGIN
