@@ -19,6 +19,7 @@ import * as naturefact from "./naturefact";
 import * as unavaatu from "./unavaatu";
 import { complimentCommand } from "./compliment";
 import * as ticket from "./ticket";
+import * as addwquotes from "./addwquotes";
 
 export interface Command {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,10 +28,27 @@ export interface Command {
 }
 
 const commandList: Command[] = [
-  confess, suggest, qotd, sticky, reminder, setup,
-  faye, help, about, wisdom,
-  modlog, warn, warnings,timestamp, vcactive, askfaye, naturefact, unavaatu, complimentCommand,
-  ticket, 
+  confess,
+  suggest,
+  qotd,
+  sticky,
+  reminder,
+  setup,
+  faye,
+  help,
+  about,
+  wisdom,
+  addwquotes,
+  modlog,
+  warn,
+  warnings,
+  timestamp,
+  vcactive,
+  askfaye,
+  naturefact,
+  unavaatu,
+  complimentCommand,
+  ticket,
 ];
 
 export const commands = new Collection<string, Command>();
