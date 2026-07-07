@@ -45,8 +45,16 @@ export default function registerInteractionCreateEvent(client: Client) {
 
       // Modals
       if (interaction.isModalSubmit()) {
-        // Bulk wisdom quote import
+        // Bulk wisdom quote import modal
         if (interaction.customId === "addwquotes_modal") {
+          if (!interaction.guildId) {
+            await interaction.reply({
+              content: "This command can only be used in a server.",
+              ephemeral: true,
+            });
+            return;
+          }
+
           const rawQuotes = interaction.fields.getTextInputValue("quotes");
 
           const quotes = rawQuotes
@@ -56,20 +64,18 @@ export default function registerInteractionCreateEvent(client: Client) {
 
           if (quotes.length === 0) {
             await interaction.reply({
-              content: "No quotes were found.",
+              content: "No quotes were found. Put each quote on its own line.",
               ephemeral: true,
             });
             return;
           }
 
-          // Remove duplicates from the pasted list
           const uniqueQuotes = [...new Set(quotes)];
 
-          // Optional: Skip quotes already in the database
           const existing = await db.select().from(wisdomQuotes);
 
           const existingQuotes = new Set(
-            existing.map((q) => q.quote.trim().toLowerCase())
+            existing.map((q) => q.content.trim().toLowerCase())
           );
 
           const newQuotes = uniqueQuotes.filter(
@@ -79,7 +85,8 @@ export default function registerInteractionCreateEvent(client: Client) {
           if (newQuotes.length > 0) {
             await db.insert(wisdomQuotes).values(
               newQuotes.map((quote) => ({
-                quote,
+                guildId: interaction.guildId!,
+                content: quote,
               }))
             );
           }
@@ -88,7 +95,9 @@ export default function registerInteractionCreateEvent(client: Client) {
             content:
               `🍃 **Wisdom Quote Import Complete**\n\n` +
               `✅ Added: **${newQuotes.length}**\n` +
-              `⏭️ Skipped duplicates: **${uniqueQuotes.length - newQuotes.length}**`,
+              `⏭️ Skipped duplicates: **${
+                uniqueQuotes.length - newQuotes.length
+              }**`,
             ephemeral: true,
           });
 
