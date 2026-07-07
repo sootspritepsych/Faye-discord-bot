@@ -80,7 +80,6 @@ export async function updateStickyMessage(client: Client, channelId: string) {
       .update(stickyMessages)
       .set({
         lastMessageId: newMessage.id,
-        updatedAt: new Date(),
       })
       .where(eq(stickyMessages.channelId, channelId));
 
