@@ -8,7 +8,10 @@ import { getUserMemories, saveUserMemory } from "../lib/userMemory";
 
 const PREFIX = "!f";
 const cooldowns = new Map<string, number>();
+const stickyCooldowns = new Map<string, number>();
+
 const COOLDOWN_MS = 5000;
+const STICKY_COOLDOWN_MS = 10000;
 
 let messageCreateRegistered = false;
 
@@ -114,21 +117,27 @@ export default function registerMessageCreateEvent(client: Client) {
 
   client.on(Events.MessageCreate, async (message: Message) => {
     try {
+      if (!message.guild) return;
+
+      // IMPORTANT: ignore ALL bot messages so Faye does not trigger her own sticky loop
+      if (message.author.bot) return;
+
       const [sticky] = await db
         .select()
         .from(stickyMessages)
         .where(eq(stickyMessages.channelId, message.channelId));
 
-      if (message.author.bot && message.author.id !== client.user?.id) return;
-
-      if (message.author.id === client.user?.id) {
-        if (sticky?.lastMessageId === message.id) return;
-      }
-
       if (sticky && message.id !== sticky.lastMessageId) {
-        setTimeout(() => {
-          updateStickyMessage(client, message.channelId).catch(console.error);
-        }, 1000);
+        const now = Date.now();
+        const lastStickyUpdate = stickyCooldowns.get(message.channelId) ?? 0;
+
+        if (now - lastStickyUpdate > STICKY_COOLDOWN_MS) {
+          stickyCooldowns.set(message.channelId, now);
+
+          setTimeout(() => {
+            updateStickyMessage(client, message.channelId).catch(console.error);
+          }, 1000);
+        }
       }
 
       if (message.content.toLowerCase().startsWith(PREFIX)) {
