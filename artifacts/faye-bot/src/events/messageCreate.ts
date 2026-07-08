@@ -1,6 +1,7 @@
 import { Client, Events, Message } from "discord.js";
 import { eq } from "drizzle-orm";
 import { getFayeResponse } from "../lib/openai";
+import { handleScamImage } from "../lib/imageGuard";
 import { updateStickyMessage } from "../lib/stickyManager";
 import { db, stickyMessages } from "../lib/database";
 import { getRecentConversation, saveConversationMessage } from "../lib/memory";
@@ -120,6 +121,11 @@ export default function registerMessageCreateEvent(client: Client) {
         .where(eq(stickyMessages.channelId, message.channelId));
 
       if (message.author.bot && message.author.id !== client.user?.id) return;
+
+      if (message.attachments.size > 0) {
+        const wasScam = await handleScamImage(message);
+        if (wasScam) return;
+      }
 
       if (message.author.id === client.user?.id) {
         if (sticky?.lastMessageId === message.id) return;
