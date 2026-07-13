@@ -1,24 +1,58 @@
-import { Client, Events, ActivityType } from "discord.js";
-import { loadReminders } from "../lib/reminderScheduler";
-import { startWisdomScheduler } from "../lib/wisdomScheduler";
-import { startWelcomeJourneyScheduler } from "../lib/welcomeJourneyScheduler";
+import {
+  Client,
+  Events,
+} from "discord.js";
 
-export default function registerReadyEvent(client: Client) {
-  client.once(Events.ClientReady, async (readyClient) => {
-    console.log(`🌿 Faye is awake! Logged in as ${readyClient.user.tag}`);
+import {
+  loadReminders,
+} from "../lib/reminderScheduler";
 
-    readyClient.user.setPresence({
-      activities: [
-        {
-          name: "over the Garden of Harmony 🌸",
-          type: ActivityType.Watching,
-        },
-      ],
-      status: "online",
-    });
+import {
+  startWisdomScheduler,
+} from "../lib/wisdomScheduler";
 
-    await loadReminders(client);
-    await startWisdomScheduler(client);
-    await startWelcomeJourneyScheduler(client);
-  });
+import {
+  startWelcomeJourneyScheduler,
+} from "../lib/welcomeJourneyScheduler";
+
+import {
+  startFayeMoodRotation,
+} from "../lib/fayeMoodService";
+
+export default function registerReadyEvent(
+  client: Client
+): void {
+  client.once(
+    Events.ClientReady,
+    async (readyClient) => {
+      console.log(
+        `🌿 Faye is awake! Logged in as ${readyClient.user.tag}`
+      );
+
+      // Select a mood immediately and then
+      // rotate Faye's presence every 20 minutes.
+      startFayeMoodRotation(client);
+
+      try {
+        await loadReminders(client);
+
+        await startWisdomScheduler(
+          client
+        );
+
+        await startWelcomeJourneyScheduler(
+          client
+        );
+
+        console.log(
+          "🌿 Faye's Garden systems are ready."
+        );
+      } catch (error) {
+        console.error(
+          "❌ Failed to initialize one or more Faye systems:",
+          error
+        );
+      }
+    }
+  );
 }
