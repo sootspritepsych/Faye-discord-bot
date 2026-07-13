@@ -1209,11 +1209,9 @@ async function handleFayeMessage(
   client: Client,
   message: Message,
   rawContent: string,
-  rawImageUrls: string[] = []
+  rawImageUrls: string[] = [],
+  bypassCooldown = false
 ): Promise<void> {
-  if (!message.guild) {
-    return;
-  }
 
   const userId =
     message.author.id;
@@ -1227,6 +1225,7 @@ async function handleFayeMessage(
     ) ?? 0;
 
   if (
+    !bypassCooldown &&
     now - lastUsed <
       DIRECT_RESPONSE_COOLDOWN_MS
   ) {
@@ -1585,7 +1584,8 @@ export default function registerMessageCreateEvent(
             client,
             message,
             content,
-            imageUrls
+            imageUrls,
+            botWasMentioned
           );
 
           return;
