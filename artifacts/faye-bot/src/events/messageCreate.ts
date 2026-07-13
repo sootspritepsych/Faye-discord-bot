@@ -7,9 +7,7 @@ import {
 
 import { eq } from "drizzle-orm";
 
-import {
-  getFayeResponse,
-} from "../lib/openai";
+import getFayeResponse from "../lib/openai";
 
 import {
   updateStickyMessage,
