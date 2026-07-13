@@ -6,6 +6,8 @@ import {
   timestamp,
   boolean,
   integer,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 
@@ -21,197 +23,497 @@ export const pool = new Pool({
 });
 
 pool.on("error", (err) => {
-  console.error("Unexpected Postgres pool error:", err);
+  console.error(
+    "Unexpected Postgres pool error:",
+    err
+  );
 });
 
 export const db = drizzle(pool);
 
-export const stickyMessages = pgTable("faye_sticky_messages", {
-  id: serial("id").primaryKey(),
-  channelId: text("channel_id").notNull().unique(),
-  content: text("content").notNull(),
-  lastMessageId: text("last_message_id"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+export const stickyMessages = pgTable(
+  "faye_sticky_messages",
+  {
+    id: serial("id").primaryKey(),
 
-export const voiceSessions = pgTable("voice_sessions", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  channelId: text("channel_id").notNull(),
-  joinedAt: timestamp("joined_at").notNull(),
-  leftAt: timestamp("left_at"),
-  durationSeconds: integer("duration_seconds"),
-});
+    channelId: text("channel_id")
+      .notNull()
+      .unique(),
 
-export const reminders = pgTable("faye_reminders", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  channelId: text("channel_id").notNull(),
-  message: text("message").notNull(),
-  cronExpression: text("cron_expression").notNull(),
-  tagRoleId: text("tag_role_id"),
-  eventName: text("event_name"),
-  active: boolean("active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    content: text("content").notNull(),
 
-export const confessions = pgTable("faye_confessions", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  username: text("username").notNull(),
-  content: text("content").notNull(),
-  category: text("category").default("Random"),
-  messageId: text("message_id"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    lastMessageId: text("last_message_id"),
 
-export const confessionReplies = pgTable("faye_confession_replies", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  confessionId: integer("confession_id").notNull(),
-  userId: text("user_id").notNull(),
-  username: text("username").notNull(),
-  content: text("content").notNull(),
-  messageId: text("message_id"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    createdAt: timestamp("created_at")
+      .defaultNow(),
 
-export const suggestions = pgTable("faye_suggestions", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  username: text("username").notNull(),
-  content: text("content").notNull(),
-  messageId: text("message_id"),
-  yesVotes: integer("yes_votes").default(0),
-  noVotes: integer("no_votes").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    updatedAt: timestamp("updated_at")
+      .defaultNow(),
+  }
+);
 
-export const qotdSuggestions = pgTable("faye_qotd_suggestions", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  submittedBy: text("submitted_by").notNull(),
-  question: text("question").notNull(),
-  used: boolean("used").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const voiceSessions = pgTable(
+  "voice_sessions",
+  {
+    id: serial("id").primaryKey(),
 
-export const warnings = pgTable("faye_warnings", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  username: text("username").notNull(),
-  moderatorId: text("moderator_id").notNull(),
-  moderatorUsername: text("moderator_username").notNull(),
-  reason: text("reason").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    guildId: text("guild_id").notNull(),
 
-export const wisdomQuotes = pgTable("faye_wisdom", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  content: text("content").notNull(),
-  used: boolean("used").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    userId: text("user_id").notNull(),
 
-export const welcomeJourneys = pgTable("faye_welcome_journeys", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  joinTime: timestamp("join_time").notNull().defaultNow(),
-  sent: boolean("sent").default(false),
-  sentAt: timestamp("sent_at"),
-});
+    channelId: text("channel_id").notNull(),
 
-export const guildConfig = pgTable("faye_guild_config", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull().unique(),
-  staffRoleId: text("staff_role_id"),
-  announcementChannelId: text("announcement_channel_id"),
-  confessionsChannelId: text("confessions_channel_id"),
-  suggestionsChannelId: text("suggestions_channel_id"),
-  qotdModChannelId: text("qotd_mod_channel_id"),
-  qotdPostChannelId: text("qotd_post_channel_id"),
-  qotdPostHour: integer("qotd_post_hour").default(9),
-  welcomeChannelId: text("welcome_channel_id"),
-  wisdomChannelId: text("wisdom_channel_id"),
-  wisdomPostHour: integer("wisdom_post_hour").default(8),
-  wisdomPingRoleId: text("wisdom_ping_role_id"),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+    joinedAt: timestamp("joined_at")
+      .notNull(),
 
-export const conversationHistory = pgTable("conversation_history", {
-  id: serial("id").primaryKey(),
-  channelId: text("channel_id").notNull(),
-  userId: text("user_id").notNull(),
-  username: text("username").notNull(),
-  role: text("role").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    leftAt: timestamp("left_at"),
 
-export const userMemories = pgTable("faye_user_memories", {
-  id: serial("id").primaryKey(),
-  userId: text("user_id").notNull(),
-  username: text("username").notNull(),
-  memory: text("memory").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    durationSeconds: integer(
+      "duration_seconds"
+    ),
+  }
+);
 
-export const natureFacts = pgTable("nature_facts", {
-  id: serial("id").primaryKey(),
-  category: text("category").notNull(),
-  fact: text("fact").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const reminders = pgTable(
+  "faye_reminders",
+  {
+    id: serial("id").primaryKey(),
 
-export const events = pgTable("events", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  eventType: text("event_type").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  server: text("server"),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time").notNull(),
-  createdBy: text("created_by"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+    guildId: text("guild_id").notNull(),
 
-export const titleReservations = pgTable("title_reservations", {
-  id: serial("id").primaryKey(),
-  eventId: integer("event_id"),
-  guildId: text("guild_id").notNull(),
-  discordUserId: text("discord_user_id").notNull(),
-  server: text("server").notNull(),
-  inGameName: text("in_game_name").notNull(),
-  coordinates: text("coordinates").notNull(),
-  title: text("title").notNull(),
-  date: text("date").notNull(),
-  hourUtc: integer("hour_utc").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    channelId: text("channel_id").notNull(),
 
-export const tickets = pgTable("tickets", {
-  id: serial("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  channelId: text("channel_id").notNull(),
-  userId: text("user_id").notNull(),
-  username: text("username"),
-  status: text("status").default("open").notNull(),
-  claimedBy: text("claimed_by"),
-  transcript: text("transcript"),
-  createdAt: timestamp("created_at").defaultNow(),
-  closedAt: timestamp("closed_at"),
-});
+    message: text("message").notNull(),
 
-export async function initDb() {
+    cronExpression: text(
+      "cron_expression"
+    ).notNull(),
+
+    tagRoleId: text("tag_role_id"),
+
+    eventName: text("event_name"),
+
+    active: boolean("active").default(true),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const confessions = pgTable(
+  "faye_confessions",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    userId: text("user_id").notNull(),
+
+    username: text("username").notNull(),
+
+    content: text("content").notNull(),
+
+    category: text("category").default(
+      "Random"
+    ),
+
+    messageId: text("message_id"),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const confessionReplies = pgTable(
+  "faye_confession_replies",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    confessionId: integer(
+      "confession_id"
+    ).notNull(),
+
+    userId: text("user_id").notNull(),
+
+    username: text("username").notNull(),
+
+    content: text("content").notNull(),
+
+    messageId: text("message_id"),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const suggestions = pgTable(
+  "faye_suggestions",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    userId: text("user_id").notNull(),
+
+    username: text("username").notNull(),
+
+    content: text("content").notNull(),
+
+    messageId: text("message_id"),
+
+    yesVotes: integer("yes_votes").default(
+      0
+    ),
+
+    noVotes: integer("no_votes").default(
+      0
+    ),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const qotdSuggestions = pgTable(
+  "faye_qotd_suggestions",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    submittedBy: text(
+      "submitted_by"
+    ).notNull(),
+
+    question: text("question").notNull(),
+
+    used: boolean("used").default(false),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const warnings = pgTable(
+  "faye_warnings",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    userId: text("user_id").notNull(),
+
+    username: text("username").notNull(),
+
+    moderatorId: text(
+      "moderator_id"
+    ).notNull(),
+
+    moderatorUsername: text(
+      "moderator_username"
+    ).notNull(),
+
+    reason: text("reason").notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const wisdomQuotes = pgTable(
+  "faye_wisdom",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    content: text("content").notNull(),
+
+    used: boolean("used").default(false),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const welcomeJourneys = pgTable(
+  "faye_welcome_journeys",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    userId: text("user_id").notNull(),
+
+    joinTime: timestamp("join_time")
+      .notNull()
+      .defaultNow(),
+
+    sent: boolean("sent").default(false),
+
+    sentAt: timestamp("sent_at"),
+  }
+);
+
+export const guildConfig = pgTable(
+  "faye_guild_config",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id")
+      .notNull()
+      .unique(),
+
+    staffRoleId: text("staff_role_id"),
+
+    announcementChannelId: text(
+      "announcement_channel_id"
+    ),
+
+    confessionsChannelId: text(
+      "confessions_channel_id"
+    ),
+
+    suggestionsChannelId: text(
+      "suggestions_channel_id"
+    ),
+
+    qotdModChannelId: text(
+      "qotd_mod_channel_id"
+    ),
+
+    qotdPostChannelId: text(
+      "qotd_post_channel_id"
+    ),
+
+    qotdPostHour: integer(
+      "qotd_post_hour"
+    ).default(9),
+
+    welcomeChannelId: text(
+      "welcome_channel_id"
+    ),
+
+    wisdomChannelId: text(
+      "wisdom_channel_id"
+    ),
+
+    wisdomPostHour: integer(
+      "wisdom_post_hour"
+    ).default(8),
+
+    wisdomPingRoleId: text(
+      "wisdom_ping_role_id"
+    ),
+
+    updatedAt: timestamp("updated_at")
+      .defaultNow(),
+  }
+);
+
+export const conversationHistory = pgTable(
+  "conversation_history",
+  {
+    id: serial("id").primaryKey(),
+
+    channelId: text("channel_id").notNull(),
+
+    userId: text("user_id").notNull(),
+
+    username: text("username").notNull(),
+
+    role: text("role").notNull(),
+
+    content: text("content").notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const userMemories = pgTable(
+  "faye_user_memories",
+  {
+    id: serial("id").primaryKey(),
+
+    userId: text("user_id").notNull(),
+
+    username: text("username").notNull(),
+
+    memory: text("memory").notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const fayeMemberRapport = pgTable(
+  "faye_member_rapport",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    userId: text("user_id").notNull(),
+
+    username: text("username").notNull(),
+
+    interactionCount: integer(
+      "interaction_count"
+    )
+      .default(0)
+      .notNull(),
+
+    firstInteractionAt: timestamp(
+      "first_interaction_at"
+    )
+      .defaultNow()
+      .notNull(),
+
+    lastInteractionAt: timestamp(
+      "last_interaction_at"
+    )
+      .defaultNow()
+      .notNull(),
+
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex(
+      "faye_rapport_member_unique"
+    ).on(
+      table.guildId,
+      table.userId
+    ),
+
+    index(
+      "faye_rapport_member_lookup_idx"
+    ).on(
+      table.guildId,
+      table.userId
+    ),
+  ]
+);
+
+export const natureFacts = pgTable(
+  "nature_facts",
+  {
+    id: serial("id").primaryKey(),
+
+    category: text("category").notNull(),
+
+    fact: text("fact").notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+  }
+);
+
+export const events = pgTable(
+  "events",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    eventType: text(
+      "event_type"
+    ).notNull(),
+
+    title: text("title").notNull(),
+
+    description: text("description"),
+
+    server: text("server"),
+
+    startTime: timestamp(
+      "start_time"
+    ).notNull(),
+
+    endTime: timestamp(
+      "end_time"
+    ).notNull(),
+
+    createdBy: text("created_by"),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+
+    updatedAt: timestamp("updated_at")
+      .defaultNow(),
+  }
+);
+
+export const titleReservations = pgTable(
+  "title_reservations",
+  {
+    id: serial("id").primaryKey(),
+
+    eventId: integer("event_id"),
+
+    guildId: text("guild_id").notNull(),
+
+    discordUserId: text(
+      "discord_user_id"
+    ).notNull(),
+
+    server: text("server").notNull(),
+
+    inGameName: text(
+      "in_game_name"
+    ).notNull(),
+
+    coordinates: text(
+      "coordinates"
+    ).notNull(),
+
+    title: text("title").notNull(),
+
+    date: text("date").notNull(),
+
+    hourUtc: integer("hour_utc")
+      .notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+  }
+);
+
+export const tickets = pgTable(
+  "tickets",
+  {
+    id: serial("id").primaryKey(),
+
+    guildId: text("guild_id").notNull(),
+
+    channelId: text("channel_id")
+      .notNull(),
+
+    userId: text("user_id").notNull(),
+
+    username: text("username"),
+
+    status: text("status")
+      .default("open")
+      .notNull(),
+
+    claimedBy: text("claimed_by"),
+
+    transcript: text("transcript"),
+
+    createdAt: timestamp("created_at")
+      .defaultNow(),
+
+    closedAt: timestamp("closed_at"),
+  }
+);
+
+export async function initDb(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS voice_sessions (
       id SERIAL PRIMARY KEY,
@@ -340,6 +642,31 @@ export async function initDb() {
       created_at TIMESTAMP DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS faye_member_rapport (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      interaction_count INTEGER NOT NULL DEFAULT 0,
+      first_interaction_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      last_interaction_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS
+      faye_rapport_member_unique
+    ON faye_member_rapport (
+      guild_id,
+      user_id
+    );
+
+    CREATE INDEX IF NOT EXISTS
+      faye_rapport_member_lookup_idx
+    ON faye_member_rapport (
+      guild_id,
+      user_id
+    );
+
     CREATE TABLE IF NOT EXISTS conversation_history (
       id SERIAL PRIMARY KEY,
       channel_id TEXT NOT NULL,
@@ -371,67 +698,123 @@ export async function initDb() {
       updated_at TIMESTAMP DEFAULT NOW()
     );
 
-   CREATE TABLE IF NOT EXISTS title_reservations (
-  id SERIAL PRIMARY KEY,
-  event_id INTEGER,
-  guild_id TEXT NOT NULL,
-  discord_user_id TEXT NOT NULL,
-  server TEXT NOT NULL,
-  in_game_name TEXT NOT NULL,
-  coordinates TEXT NOT NULL,
-  title TEXT NOT NULL,
-  date TEXT NOT NULL,
-  hour_utc INTEGER NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+    CREATE TABLE IF NOT EXISTS title_reservations (
+      id SERIAL PRIMARY KEY,
+      event_id INTEGER,
+      guild_id TEXT NOT NULL,
+      discord_user_id TEXT NOT NULL,
+      server TEXT NOT NULL,
+      in_game_name TEXT NOT NULL,
+      coordinates TEXT NOT NULL,
+      title TEXT NOT NULL,
+      date TEXT NOT NULL,
+      hour_utc INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
 
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS event_id INTEGER;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS guild_id TEXT;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS discord_user_id TEXT;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS server TEXT;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS in_game_name TEXT;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS coordinates TEXT;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS title TEXT;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS date TEXT;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS hour_utc INTEGER;
-ALTER TABLE title_reservations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS event_id INTEGER;
 
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_name = 'title_reservations'
-    AND column_name = 'ign'
-  ) THEN
-    UPDATE title_reservations
-    SET in_game_name = ign
-    WHERE in_game_name IS NULL;
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS guild_id TEXT;
 
-    ALTER TABLE title_reservations DROP COLUMN ign;
-  END IF;
-END $$;
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS discord_user_id TEXT;
 
-    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
-    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
-    ALTER TABLE faye_confessions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Random';
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS server TEXT;
 
-    ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'unknown';
-    ALTER TABLE faye_suggestions ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS in_game_name TEXT;
 
-    ALTER TABLE faye_reminders ADD COLUMN IF NOT EXISTS event_name TEXT;
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS coordinates TEXT;
 
-    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_mod_channel_id TEXT;
-    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_channel_id TEXT;
-    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS qotd_post_hour INTEGER DEFAULT 9;
-    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_channel_id TEXT;
-    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_post_hour INTEGER DEFAULT 8;
-    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
-    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS staff_role_id TEXT;
-    ALTER TABLE faye_guild_config ADD COLUMN IF NOT EXISTS announcement_channel_id TEXT;
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS title TEXT;
 
-    ALTER TABLE faye_sticky_messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS date TEXT;
+
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS hour_utc INTEGER;
+
+    ALTER TABLE title_reservations
+      ADD COLUMN IF NOT EXISTS created_at
+      TIMESTAMP DEFAULT NOW();
+
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'title_reservations'
+        AND column_name = 'ign'
+      ) THEN
+        UPDATE title_reservations
+        SET in_game_name = ign
+        WHERE in_game_name IS NULL;
+
+        ALTER TABLE title_reservations
+          DROP COLUMN ign;
+      END IF;
+    END $$;
+
+    ALTER TABLE faye_confessions
+      ADD COLUMN IF NOT EXISTS user_id
+      TEXT NOT NULL DEFAULT 'unknown';
+
+    ALTER TABLE faye_confessions
+      ADD COLUMN IF NOT EXISTS username
+      TEXT NOT NULL DEFAULT 'unknown';
+
+    ALTER TABLE faye_confessions
+      ADD COLUMN IF NOT EXISTS category
+      TEXT DEFAULT 'Random';
+
+    ALTER TABLE faye_suggestions
+      ADD COLUMN IF NOT EXISTS user_id
+      TEXT NOT NULL DEFAULT 'unknown';
+
+    ALTER TABLE faye_suggestions
+      ADD COLUMN IF NOT EXISTS username
+      TEXT NOT NULL DEFAULT 'unknown';
+
+    ALTER TABLE faye_reminders
+      ADD COLUMN IF NOT EXISTS event_name TEXT;
+
+    ALTER TABLE faye_guild_config
+      ADD COLUMN IF NOT EXISTS qotd_mod_channel_id TEXT;
+
+    ALTER TABLE faye_guild_config
+      ADD COLUMN IF NOT EXISTS qotd_post_channel_id TEXT;
+
+    ALTER TABLE faye_guild_config
+      ADD COLUMN IF NOT EXISTS qotd_post_hour
+      INTEGER DEFAULT 9;
+
+    ALTER TABLE faye_guild_config
+      ADD COLUMN IF NOT EXISTS wisdom_channel_id TEXT;
+
+    ALTER TABLE faye_guild_config
+      ADD COLUMN IF NOT EXISTS wisdom_post_hour
+      INTEGER DEFAULT 8;
+
+    ALTER TABLE faye_guild_config
+      ADD COLUMN IF NOT EXISTS wisdom_ping_role_id TEXT;
+
+    ALTER TABLE faye_guild_config
+      ADD COLUMN IF NOT EXISTS staff_role_id TEXT;
+
+    ALTER TABLE faye_guild_config
+      ADD COLUMN IF NOT EXISTS announcement_channel_id TEXT;
+
+    ALTER TABLE faye_sticky_messages
+      ADD COLUMN IF NOT EXISTS updated_at
+      TIMESTAMP DEFAULT NOW();
   `);
 
-  console.log("🌿 Faye database tables initialized");
+  console.log(
+    "🌿 Faye database tables initialized"
+  );
 }
