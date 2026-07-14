@@ -1475,27 +1475,115 @@ export default function registerMessageCreateEvent(
     Events.MessageCreate,
     async (message: Message) => {
       try {
-        if (!message.inGuild()) {
-          return;
-        }
-
         if (!client.user) {
           return;
         }
 
         /*
-         * Most bot messages remain ignored.
-         * The only exception is Lilith in the designated
-         * sister-interaction channel.
+         * Ignore bot messages everywhere except for
+         * Lilith's eligible sister interactions.
+         *
+         * Sister interactions only happen in a guild,
+         * never in DMs.
          */
         if (message.author.bot) {
-          await maybeRespondToLilith(
-            message
+          if (message.inGuild()) {
+            await maybeRespondToLilith(
+              message
+            );
+          }
+
+          return;
+        }
+
+        /*
+         * Direct messages automatically summon Faye.
+         *
+         * Members do not need to use !f, mention Faye,
+         * or say her name in a DM.
+         */
+        if (!message.inGuild()) {
+          const content =
+            cleanFayeMessage(
+              message.content,
+              client.user.id
+            );
+
+          const currentImageUrls =
+            getImageUrls(message);
+
+          let imageUrls =
+            mergeImageUrls(
+              currentImageUrls
+            );
+
+          /*
+           * Look for an image in a referenced DM message
+           * when the member replies to it.
+           */
+          const referencedMessage =
+            await fetchReferencedMessage(
+              message
+            );
+
+          if (
+            referencedMessage &&
+            !referencedMessage.author.bot
+          ) {
+            imageUrls =
+              mergeImageUrls(
+                imageUrls,
+                getImageUrls(
+                  referencedMessage
+                )
+              );
+          }
+
+          /*
+           * If the member says something like
+           * "what do you think of this?" shortly after
+           * sending an image, locate that recent image.
+           */
+          if (
+            imageUrls.length === 0 &&
+            (
+              !content ||
+              VISUAL_PROMPT_PATTERN.test(
+                content
+              )
+            )
+          ) {
+            const recentImageMessage =
+              await findRecentImageMessage(
+                message
+              );
+
+            if (recentImageMessage) {
+              imageUrls =
+                getImageUrls(
+                  recentImageMessage
+                );
+            }
+          }
+
+          console.log(
+            `🌿 Faye received a DM from ${message.author.username}.`
+          );
+
+          await handleFayeMessage(
+            client,
+            message,
+            content,
+            imageUrls
           );
 
           return;
         }
 
+        /*
+         * Everything below this point is for messages
+         * sent inside a Discord server.
+         */
         await handleStickyMessage(
           client,
           message
