@@ -1069,7 +1069,7 @@ function chooseFayeReaction(
   if (
     GOOD_NEWS_PATTERN.test(content)
   ) {
-    return Math.random() < 0.5
+    return Math.random() < 0.05
       ? "🌟"
       : "🌿";
   }
