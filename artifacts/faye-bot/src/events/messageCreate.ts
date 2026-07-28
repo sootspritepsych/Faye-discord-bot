@@ -47,8 +47,17 @@ const AMBIENT_CHANNEL_COOLDOWN_MS =
 const AMBIENT_USER_COOLDOWN_MS =
   20 * 60 * 1_000;
 
-const REACTION_CHANNEL_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
-const REACTION_USER_COOLDOWN_MS = 20 * 60 * 1000;    // 20 minutes
+const REACTION_CHANNEL_COOLDOWN_MS =
+  10 * 60 * 1_000;
+
+const REACTION_USER_COOLDOWN_MS =
+  20 * 60 * 1_000;
+
+const REACTION_MIN_DELAY_MS =
+  4_000;
+
+const REACTION_MAX_DELAY_MS =
+  10_000;
 
 const RECENT_IMAGE_WINDOW_MS =
   5 * 60 * 1_000;
@@ -443,6 +452,32 @@ function getConversationText(
   }
 
   return "[Shared a message]";
+}
+
+function getRandomReactionDelay():
+  number {
+  return (
+    REACTION_MIN_DELAY_MS +
+    Math.floor(
+      Math.random() *
+        (
+          REACTION_MAX_DELAY_MS -
+          REACTION_MIN_DELAY_MS +
+          1
+        )
+    )
+  );
+}
+
+function wait(
+  milliseconds: number
+): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(
+      resolve,
+      milliseconds
+    );
+  });
 }
 
 async function fetchReferencedMessage(
@@ -1178,21 +1213,102 @@ async function maybeReactAsFaye(
     return;
   }
 
-  try {
-    await message.react(reaction);
+  /*
+   * Reserve the cooldown before waiting so several
+   * messages cannot all schedule reactions at once.
+   */
+  const reservedAt =
+    Date.now();
 
-    const now = Date.now();
+  reactionChannelCooldowns.set(
+    message.channel.id,
+    reservedAt
+  );
+
+  reactionUserCooldowns.set(
+    message.author.id,
+    reservedAt
+  );
+
+  try {
+    await wait(
+      getRandomReactionDelay()
+    );
+
+    /*
+     * Fetch the message again in case it was deleted
+     * while Faye was waiting.
+     */
+    const refreshedMessage =
+      await message.channel.messages.fetch(
+        message.id
+      );
+
+    const fayeUserId =
+      message.client.user?.id;
+
+    /*
+     * Do not add a second reaction if Faye has already
+     * reacted to this message through another path.
+     */
+    const fayeAlreadyReacted =
+      Boolean(fayeUserId) &&
+      refreshedMessage.reactions.cache.some(
+        (existingReaction) =>
+          existingReaction.users.cache.has(
+            fayeUserId as string
+          )
+      );
+
+    if (fayeAlreadyReacted) {
+      return;
+    }
+
+    await refreshedMessage.react(
+      reaction
+    );
+
+    /*
+     * Begin the full cooldown when the reaction
+     * actually appears.
+     */
+    const reactedAt =
+      Date.now();
 
     reactionChannelCooldowns.set(
       message.channel.id,
-      now
+      reactedAt
     );
 
     reactionUserCooldowns.set(
       message.author.id,
-      now
+      reactedAt
     );
   } catch (error) {
+    /*
+     * Release the temporary cooldown reservation if
+     * the message was deleted or the reaction failed.
+     */
+    if (
+      reactionChannelCooldowns.get(
+        message.channel.id
+      ) === reservedAt
+    ) {
+      reactionChannelCooldowns.delete(
+        message.channel.id
+      );
+    }
+
+    if (
+      reactionUserCooldowns.get(
+        message.author.id
+      ) === reservedAt
+    ) {
+      reactionUserCooldowns.delete(
+        message.author.id
+      );
+    }
+
     console.error(
       "Faye reaction error:",
       error
@@ -1207,7 +1323,6 @@ async function handleFayeMessage(
   rawImageUrls: string[] = [],
   bypassCooldown = false
 ): Promise<void> {
-
   const userId =
     message.author.id;
 
