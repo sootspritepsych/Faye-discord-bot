@@ -9,6 +9,9 @@ import {
   fayeMemberRapport,
 } from "./database";
 
+export const FAYE_DM_RAPPORT_SCOPE =
+  "faye_private_dms";
+
 export type FayeRapportLevel =
   | "new_traveler"
   | "familiar_gardener"
@@ -16,13 +19,28 @@ export type FayeRapportLevel =
   | "trusted_companion"
   | "beloved_grovekeeper";
 
+export type FayeRelationshipType =
+  | "server"
+  | "dm";
+
 export interface FayeRapportContext {
   interactionCount: number;
+
   level: FayeRapportLevel;
+
+  relationshipType:
+    FayeRelationshipType;
+
   firstInteractionAt: Date;
-  previousInteractionAt: Date | null;
-  daysSincePreviousInteraction: number | null;
-  isReturningAfterAbsence: boolean;
+
+  previousInteractionAt:
+    Date | null;
+
+  daysSincePreviousInteraction:
+    number | null;
+
+  isReturningAfterAbsence:
+    boolean;
 }
 
 const RETURNING_AFTER_DAYS = 4;
@@ -30,29 +48,65 @@ const RETURNING_AFTER_DAYS = 4;
 function cleanUsername(
   username: string
 ): string {
-  const cleaned = username
-    .trim()
-    .slice(0, 100);
+  const cleaned =
+    username
+      .trim()
+      .slice(0, 100);
 
-  return cleaned || "Unknown member";
+  return (
+    cleaned ||
+    "Unknown member"
+  );
+}
+
+function cleanRelationshipScope(
+  scopeId: string
+): string {
+  const cleaned =
+    scopeId
+      .trim()
+      .slice(0, 200);
+
+  if (!cleaned) {
+    throw new Error(
+      "Faye rapport scope cannot be empty."
+    );
+  }
+
+  return cleaned;
+}
+
+function cleanUserId(
+  userId: string
+): string {
+  const cleaned =
+    userId.trim();
+
+  if (!cleaned) {
+    throw new Error(
+      "Faye rapport user ID cannot be empty."
+    );
+  }
+
+  return cleaned;
 }
 
 export function getFayeRapportLevel(
   interactionCount: number
 ): FayeRapportLevel {
-  if (interactionCount >= 75) {
+  if (interactionCount >= 100) {
     return "beloved_grovekeeper";
   }
 
-  if (interactionCount >= 35) {
+  if (interactionCount >= 50) {
     return "trusted_companion";
   }
 
-  if (interactionCount >= 15) {
+  if (interactionCount >= 20) {
     return "garden_regular";
   }
 
-  if (interactionCount >= 4) {
+  if (interactionCount >= 5) {
     return "familiar_gardener";
   }
 
@@ -66,74 +120,155 @@ function calculateDaysSince(
   const millisecondsPerDay =
     24 * 60 * 60 * 1000;
 
-  return Math.floor(
-    (
-      currentDate.getTime() -
-      previousDate.getTime()
-    ) / millisecondsPerDay
+  const difference =
+    currentDate.getTime() -
+    previousDate.getTime();
+
+  return Math.max(
+    0,
+    Math.floor(
+      difference /
+        millisecondsPerDay
+    )
   );
 }
 
+function getRelationshipType(
+  scopeId: string
+): FayeRelationshipType {
+  return scopeId ===
+    FAYE_DM_RAPPORT_SCOPE
+    ? "dm"
+    : "server";
+}
+
 export async function recordFayeInteraction(
-  guildId: string,
+  scopeId: string,
   userId: string,
   username: string
 ): Promise<FayeRapportContext> {
-  const now = new Date();
+  const cleanedScopeId =
+    cleanRelationshipScope(
+      scopeId
+    );
 
-  const existingRows = await db
-    .select({
-      interactionCount:
-        fayeMemberRapport.interactionCount,
+  const cleanedUserId =
+    cleanUserId(
+      userId
+    );
 
-      firstInteractionAt:
-        fayeMemberRapport.firstInteractionAt,
+  const cleanedUsername =
+    cleanUsername(
+      username
+    );
 
-      lastInteractionAt:
-        fayeMemberRapport.lastInteractionAt,
-    })
-    .from(fayeMemberRapport)
-    .where(
-      and(
-        eq(
-          fayeMemberRapport.guildId,
-          guildId
-        ),
-        eq(
-          fayeMemberRapport.userId,
-          userId
+  const relationshipType =
+    getRelationshipType(
+      cleanedScopeId
+    );
+
+  const now =
+    new Date();
+
+  const existingRows =
+    await db
+      .select({
+        interactionCount:
+          fayeMemberRapport
+            .interactionCount,
+
+        firstInteractionAt:
+          fayeMemberRapport
+            .firstInteractionAt,
+
+        lastInteractionAt:
+          fayeMemberRapport
+            .lastInteractionAt,
+      })
+      .from(
+        fayeMemberRapport
+      )
+      .where(
+        and(
+          eq(
+            fayeMemberRapport
+              .guildId,
+            cleanedScopeId
+          ),
+          eq(
+            fayeMemberRapport
+              .userId,
+            cleanedUserId
+          )
         )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  const existing = existingRows[0];
+  const existing =
+    existingRows[0];
 
   if (!existing) {
     await db
-      .insert(fayeMemberRapport)
+      .insert(
+        fayeMemberRapport
+      )
       .values({
-        guildId,
-        userId,
-        username: cleanUsername(username),
+        /*
+         * The existing guildId column also stores the
+         * private-DM relationship scope.
+         *
+         * Server example:
+         * 123456789012345678
+         *
+         * DM example:
+         * faye_private_dms
+         */
+        guildId:
+          cleanedScopeId,
+
+        userId:
+          cleanedUserId,
+
+        username:
+          cleanedUsername,
+
         interactionCount: 1,
-        firstInteractionAt: now,
-        lastInteractionAt: now,
-        updatedAt: now,
+
+        firstInteractionAt:
+          now,
+
+        lastInteractionAt:
+          now,
+
+        updatedAt:
+          now,
       });
 
     return {
       interactionCount: 1,
-      level: "new_traveler",
-      firstInteractionAt: now,
-      previousInteractionAt: null,
-      daysSincePreviousInteraction: null,
-      isReturningAfterAbsence: false,
+
+      level:
+        "new_traveler",
+
+      relationshipType,
+
+      firstInteractionAt:
+        now,
+
+      previousInteractionAt:
+        null,
+
+      daysSincePreviousInteraction:
+        null,
+
+      isReturningAfterAbsence:
+        false,
     };
   }
 
   const nextInteractionCount =
-    existing.interactionCount + 1;
+    existing.interactionCount +
+    1;
 
   const daysSincePreviousInteraction =
     calculateDaysSince(
@@ -142,26 +277,35 @@ export async function recordFayeInteraction(
     );
 
   await db
-    .update(fayeMemberRapport)
+    .update(
+      fayeMemberRapport
+    )
     .set({
-      username: cleanUsername(username),
+      username:
+        cleanedUsername,
 
-      interactionCount: sql`
-        ${fayeMemberRapport.interactionCount} + 1
-      `,
+      interactionCount:
+        sql`
+          ${fayeMemberRapport.interactionCount} + 1
+        `,
 
-      lastInteractionAt: now,
-      updatedAt: now,
+      lastInteractionAt:
+        now,
+
+      updatedAt:
+        now,
     })
     .where(
       and(
         eq(
-          fayeMemberRapport.guildId,
-          guildId
+          fayeMemberRapport
+            .guildId,
+          cleanedScopeId
         ),
         eq(
-          fayeMemberRapport.userId,
-          userId
+          fayeMemberRapport
+            .userId,
+          cleanedUserId
         )
       )
     );
@@ -170,9 +314,12 @@ export async function recordFayeInteraction(
     interactionCount:
       nextInteractionCount,
 
-    level: getFayeRapportLevel(
-      nextInteractionCount
-    ),
+    level:
+      getFayeRapportLevel(
+        nextInteractionCount
+      ),
+
+    relationshipType,
 
     firstInteractionAt:
       existing.firstInteractionAt,
@@ -188,28 +335,60 @@ export async function recordFayeInteraction(
   };
 }
 
-export function formatFayeRapportContext(
-  rapport: FayeRapportContext
-): string {
-  const lines = [
-    `Rapport level: ${rapport.level}`,
-    `Recorded interactions: ${rapport.interactionCount}`,
-  ];
+export async function recordFayeDmInteraction(
+  userId: string,
+  username: string
+): Promise<FayeRapportContext> {
+  return recordFayeInteraction(
+    FAYE_DM_RAPPORT_SCOPE,
+    userId,
+    username
+  );
+}
 
+export async function recordFayeServerInteraction(
+  guildId: string,
+  userId: string,
+  username: string
+): Promise<FayeRapportContext> {
+  return recordFayeInteraction(
+    guildId,
+    userId,
+    username
+  );
+}
+
+function addReturningContext(
+  lines: string[],
+  rapport: FayeRapportContext
+): void {
   if (
-    rapport.isReturningAfterAbsence &&
-    rapport.daysSincePreviousInteraction !==
+    !rapport
+      .isReturningAfterAbsence ||
+    rapport
+      .daysSincePreviousInteraction ===
       null
   ) {
-    lines.push(
-      `The member is returning after approximately ${rapport.daysSincePreviousInteraction} days away.`
-    );
+    return;
   }
 
+  lines.push(
+    `This person is returning after approximately ${rapport.daysSincePreviousInteraction} days without a recorded conversation.`
+  );
+
+  lines.push(
+    "Faye may briefly sound pleased to hear from them again, but she must not imply that she watched, tracked, waited for, or was harmed by their absence."
+  );
+}
+
+function addServerRelationshipContext(
+  lines: string[],
+  rapport: FayeRapportContext
+): void {
   switch (rapport.level) {
     case "new_traveler":
       lines.push(
-        "Faye does not know this member well yet. Be welcoming and interested without acting overly familiar."
+        "Faye does not know this member well yet. Be welcoming, curious, and friendly without acting overly familiar."
       );
       break;
 
@@ -237,12 +416,106 @@ export function formatFayeRapportContext(
       );
       break;
   }
+}
 
-  if (rapport.isReturningAfterAbsence) {
+function addDmRelationshipContext(
+  lines: string[],
+  rapport: FayeRapportContext
+): void {
+  lines.push(
+    "This is a private one-on-one DM relationship between Faye and this member."
+  );
+
+  lines.push(
+    "Let the relationship develop gradually through repeated conversations, remembered details, shared humor, and emotional continuity."
+  );
+
+  switch (rapport.level) {
+    case "new_traveler":
+      lines.push(
+        "Faye is only beginning to know this person. She should be inviting, attentive, and genuinely interested without assuming closeness."
+      );
+      break;
+
+    case "familiar_gardener":
+      lines.push(
+        "Faye recognizes this person as someone who returns to talk with her. She may be more relaxed, familiar, and personally engaged."
+      );
+      break;
+
+    case "garden_regular":
+      lines.push(
+        "Faye has an established private friendship with this person. She may remember ongoing situations, revisit prior topics, use familiar humor, and show that their conversations matter to her."
+      );
+      break;
+
+    case "trusted_companion":
+      lines.push(
+        "Faye considers this person a trusted private companion. She may show sincere fondness, comfortable teasing, thoughtful concern, and stronger emotional continuity."
+      );
+      break;
+
+    case "beloved_grovekeeper":
+      lines.push(
+        "Faye has a deeply established and affectionate friendship with this person. She may speak with strong familiarity, warmth, personal recognition, and gentle affection while remaining emotionally healthy and nonpossessive."
+      );
+      break;
+  }
+
+  lines.push(
+    "Faye should use stored memories only when they are naturally relevant. She should not recite facts merely to prove that she remembers."
+  );
+
+  lines.push(
+    "Faye may develop recurring jokes, nicknames, conversational habits, and familiar ways of greeting this person when those emerge naturally from prior conversations."
+  );
+
+  lines.push(
+    "Faye must never pressure this person to keep talking, demand exclusivity, compete with their real relationships, guilt them for leaving, or imply that they are responsible for her emotional wellbeing."
+  );
+
+  lines.push(
+    "Faye must not claim to be human or pretend that the relationship exists outside the Discord conversations and memories available to her."
+  );
+}
+
+export function formatFayeRapportContext(
+  rapport: FayeRapportContext
+): string {
+  const lines = [
+    `Relationship setting: ${rapport.relationshipType}`,
+    `Rapport level: ${rapport.level}`,
+    `Recorded interactions: ${rapport.interactionCount}`,
+    `First recorded interaction: ${rapport.firstInteractionAt.toISOString()}`,
+  ];
+
+  if (
+    rapport.previousInteractionAt
+  ) {
     lines.push(
-      "Faye may briefly express happiness that they are back, but must not imply that she tracked or monitored their absence."
+      `Previous recorded interaction: ${rapport.previousInteractionAt.toISOString()}`
     );
   }
+
+  if (
+    rapport.relationshipType ===
+    "dm"
+  ) {
+    addDmRelationshipContext(
+      lines,
+      rapport
+    );
+  } else {
+    addServerRelationshipContext(
+      lines,
+      rapport
+    );
+  }
+
+  addReturningContext(
+    lines,
+    rapport
+  );
 
   return lines.join("\n");
 }
