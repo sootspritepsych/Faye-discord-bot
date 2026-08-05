@@ -454,6 +454,34 @@ function getConversationText(
   return "[Shared a message]";
 }
 
+function getConversationKey(
+  message: Message
+): string {
+  /*
+   * Every member receives one continuous private
+   * conversation history in Faye's DMs.
+   *
+   * The user's Discord ID is stable even when Discord
+   * creates or reloads the DM channel, so Faye can
+   * consistently retrieve that member's prior DMs.
+   *
+   * Guild conversations remain separated by server
+   * and channel. Private DM content is therefore not
+   * automatically included in public conversations.
+   */
+  if (!message.inGuild()) {
+    return `faye:dm:user:${message.author.id}`;
+  }
+
+  return [
+    "faye",
+    "guild",
+    message.guild.id,
+    "channel",
+    message.channel.id,
+  ].join(":");
+}
+
 function getRandomReactionDelay():
   number {
   return (
@@ -946,7 +974,7 @@ async function loadRapportContext(
   displayName: string
 ): Promise<string> {
   if (!message.guild) {
-    return "No rapport information is available.";
+    return "This conversation is taking place privately in Faye's DMs. No server rapport update is being recorded for this message.";
   }
 
   try {
@@ -1003,7 +1031,7 @@ async function maybeCommentAsFaye(
 
     const recentMessages =
       await getRecentConversation(
-        message.channel.id
+        getConversationKey(message)
       );
 
     const userMemories =
@@ -1048,8 +1076,11 @@ async function maybeCommentAsFaye(
       now
     );
 
+    const conversationKey =
+      getConversationKey(message);
+
     await saveConversationMessage(
-      message.channel.id,
+      conversationKey,
       message.author.id,
       displayName,
       "user",
@@ -1057,7 +1088,7 @@ async function maybeCommentAsFaye(
     );
 
     await saveConversationMessage(
-      message.channel.id,
+      conversationKey,
       client.user?.id ?? "faye",
       "Faye",
       "assistant",
@@ -1326,6 +1357,9 @@ async function handleFayeMessage(
   const userId =
     message.author.id;
 
+  const conversationKey =
+    getConversationKey(message);
+
   const now =
     Date.now();
 
@@ -1401,14 +1435,32 @@ async function handleFayeMessage(
         memory
       );
 
+      await saveConversationMessage(
+        conversationKey,
+        message.author.id,
+        displayName,
+        "user",
+        rawContent
+      );
+
+      const confirmation =
+        "I’ll tuck that memory safely into the garden. 🌿";
+
       await message.reply({
-        content:
-          "I’ll tuck that memory safely into the garden. 🌿",
+        content: confirmation,
         allowedMentions: {
           repliedUser: false,
           parse: [],
         },
       });
+
+      await saveConversationMessage(
+        conversationKey,
+        client.user?.id ?? "faye",
+        "Faye",
+        "assistant",
+        confirmation
+      );
 
       return;
     }
@@ -1459,7 +1511,7 @@ async function handleFayeMessage(
       );
 
     await saveConversationMessage(
-      message.channel.id,
+      conversationKey,
       message.author.id,
       displayName,
       "user",
@@ -1473,7 +1525,7 @@ async function handleFayeMessage(
 
     const recentMessages =
       await getRecentConversation(
-        message.channel.id
+        conversationKey
       );
 
     const userMemories =
@@ -1500,7 +1552,7 @@ async function handleFayeMessage(
     });
 
     await saveConversationMessage(
-      message.channel.id,
+      conversationKey,
       client.user?.id ?? "faye",
       "Faye",
       "assistant",
@@ -1613,6 +1665,9 @@ export default function registerMessageCreateEvent(
          *
          * Members do not need to use !f, mention Faye,
          * or say her name in a DM.
+         *
+         * DM history is saved under a stable key based
+         * on the member's Discord user ID.
          */
         if (!message.inGuild()) {
           const content =
