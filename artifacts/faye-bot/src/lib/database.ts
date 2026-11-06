@@ -8,6 +8,7 @@ import {
   integer,
   index,
   uniqueIndex,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 
@@ -189,11 +190,38 @@ export const qotdSuggestions = pgTable(
 
     question: text("question").notNull(),
 
+    // Staff must approve questions before automatic posting
+    approved: boolean("approved")
+      .notNull()
+      .default(false),
+
+    // Tracks questions that have already been posted
     used: boolean("used").default(false),
 
     createdAt: timestamp("created_at")
       .defaultNow(),
   }
+);
+
+export const qotdDailyPosts = pgTable(
+  "qotd_daily_posts",
+  {
+    guildId: text("guild_id").notNull(),
+
+    localDate: text("local_date").notNull(),
+
+    questionId: integer("question_id").notNull(),
+
+    messageId: text("message_id"),
+  },
+  (table) => ({
+    pk: primaryKey({
+      columns: [
+        table.guildId,
+        table.localDate,
+      ],
+    }),
+  })
 );
 
 export const warnings = pgTable(
