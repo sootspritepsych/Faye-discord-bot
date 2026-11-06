@@ -3,6 +3,10 @@ import {
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
   EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
   ChannelType,
   PermissionFlagsBits,
   type Attachment,
@@ -80,9 +84,7 @@ export const data = new SlashCommandBuilder()
     sub.setName("queue").setDescription("[Mod] View approved unused questions")
   )
   .addSubcommand((sub) =>
-    sub
-      .setName("use")
-      .setDescription("[Mod] Post a random unused QOTD now")
+    idOption(sub.setName("use").setDescription("[Mod] Post a question now (counts as today's QOTD)"))
   );
 
 function questionPreview(question: string): string {
@@ -94,6 +96,8 @@ function questionPreview(question: string): string {
 const MAX_QUESTION_LENGTH = 500;
 const MAX_IMPORT_LINES = 200;
 const MAX_IMPORT_BYTES = 64 * 1024;
+const QOTD_PAGE_SIZE = 10;
+const QOTD_BUTTON_LIFETIME_MS = 10 * 60 * 1000;
 
 type ImportResult = {
   added: number;
@@ -344,23 +348,101 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    const description = rows
-      .slice(0, 10)
-      .map(
-        (q) =>
-          `**#${q.id}** — ${questionPreview(q.question)}\n*by ${q.submittedBy.slice(0, 70)}*`
-      )
-      .join("\n\n");
+    // Show every entry across pages rather than cutting the result off at 10.
+    const totalPages = Math.ceil(rows.length / QOTD_PAGE_SIZE);
+    let currentPage = 0;
+    // An interaction ID is unique, so separate invocations cannot control each other.
+    const buttonPrefix = `qotd:${sub}:${interaction.id}`;
 
-    const embed = new EmbedBuilder()
-      .setColor(approved ? 0x66bb6a : 0xa5d6a7)
-      .setTitle(approved ? "🌸 Approved QOTD Queue" : "🌸 Pending QOTD Suggestions")
-      .setDescription(description)
-      .setFooter({
-        text: `Showing ${Math.min(rows.length, 10)} of ${rows.length} · Garden of Harmony`,
-      });
+    function renderPage() {
+      const start = currentPage * QOTD_PAGE_SIZE;
+      const end = Math.min(start + QOTD_PAGE_SIZE, rows.length);
+      const description = rows
+        .slice(start, end)
+        .map(
+          (q) =>
+            `**#${q.id}** — ${questionPreview(q.question)}\n*by ${q.submittedBy.slice(0, 70)}*`
+        )
+        .join("\n\n");
 
-    await interaction.editReply({ embeds: [embed] });
+      const embed = new EmbedBuilder()
+        .setColor(approved ? 0x66bb6a : 0xa5d6a7)
+        .setTitle(approved ? "🌸 Approved QOTD Queue" : "🌸 Pending QOTD Suggestions")
+        .setDescription(description)
+        .setFooter({
+          text: `Showing ${start + 1}–${end} of ${rows.length} · Page ${currentPage + 1}/${totalPages} · Garden of Harmony`,
+        });
+
+      if (totalPages === 1) {
+        return { embeds: [embed], components: [] };
+      }
+
+      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`${buttonPrefix}:first`)
+          .setLabel("⏮ First")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(currentPage === 0),
+        new ButtonBuilder()
+          .setCustomId(`${buttonPrefix}:previous`)
+          .setLabel("◀ Previous")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(currentPage === 0),
+        new ButtonBuilder()
+          .setCustomId(`${buttonPrefix}:next`)
+          .setLabel("Next ▶")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(currentPage === totalPages - 1),
+        new ButtonBuilder()
+          .setCustomId(`${buttonPrefix}:last`)
+          .setLabel("Last ⏭")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(currentPage === totalPages - 1)
+      );
+
+      return { embeds: [embed], components: [buttons] };
+    }
+
+    const reply = await interaction.editReply(renderPage());
+    if (totalPages === 1) return;
+
+    const collector = reply.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: QOTD_BUTTON_LIFETIME_MS,
+      filter: (button) =>
+        button.user.id === interaction.user.id &&
+        button.customId.startsWith(`${buttonPrefix}:`),
+    });
+
+    collector.on("collect", async (button) => {
+      switch (button.customId) {
+        case `${buttonPrefix}:first`:
+          currentPage = 0;
+          break;
+        case `${buttonPrefix}:previous`:
+          currentPage = Math.max(0, currentPage - 1);
+          break;
+        case `${buttonPrefix}:next`:
+          currentPage = Math.min(totalPages - 1, currentPage + 1);
+          break;
+        case `${buttonPrefix}:last`:
+          currentPage = totalPages - 1;
+          break;
+        default:
+          return;
+      }
+
+      try {
+        await button.update(renderPage());
+      } catch (error) {
+        console.error("❌ Could not change QOTD page:", error);
+      }
+    });
+
+    // Remove the buttons before the ephemeral reply's edit token expires.
+    collector.on("end", () => {
+      void interaction.editReply({ components: [] }).catch(() => {});
+    });
     return;
   }
 
@@ -397,43 +479,36 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 
   if (sub === "use") {
-    // The service selects an approved, unused question at random when no ID is supplied.
-    try {
-      const result = await postQotd(interaction.client, guildId);
+    const id = interaction.options.getInteger("id", true);
+    const result = await postQotd(interaction.client, guildId, id);
 
-      switch (result.status) {
-        case "posted":
-          await interaction.editReply(
-            `🌸 QOTD **#${result.questionId}** posted to <#${result.channelId}> and <@&${QOTD_ROLE_ID}> pinged!`
-          );
-          break;
-        case "already_posted":
-          await interaction.editReply(
-            "🌿 A QOTD has already been posted today. Faye will post the next one tomorrow."
-          );
-          break;
-        case "no_questions":
-          await interaction.editReply(
-            "🌿 No approved, unused QOTDs are available. Add more with `/qotd add`, `/qotd batch`, or `/qotd import`."
-          );
-          break;
-        case "not_configured":
-          await interaction.editReply(
-            "No public QOTD post channel is configured. Use `/setup qotd-post-channel` first."
-          );
-          break;
-        case "channel_not_found":
-          await interaction.editReply("Could not find the configured public QOTD channel.");
-          break;
-        default:
-          await interaction.editReply("Unable to post a QOTD right now.");
-      }
-    } catch (error) {
-      console.error("❌ /qotd use failed:", error);
-      await interaction.editReply(
-        "❌ Something went wrong while posting the QOTD. Please ask staff to check the bot logs."
-      );
+    switch (result.status) {
+      case "posted":
+        await interaction.editReply(
+          `🌸 QOTD **#${id}** posted to <#${result.channelId}> and <@&${QOTD_ROLE_ID}> pinged!`
+        );
+        break;
+      case "already_posted":
+        await interaction.editReply(
+          "🌿 A QOTD has already been posted today. Faye will post the next one tomorrow."
+        );
+        break;
+      case "question_not_found":
+        await interaction.editReply("Could not find that QOTD suggestion.");
+        break;
+      case "question_used":
+        await interaction.editReply("That QOTD suggestion has already been used.");
+        break;
+      case "not_configured":
+        await interaction.editReply(
+          "No public QOTD post channel is configured. Point qotdPostChannelId at #main first."
+        );
+        break;
+      case "channel_not_found":
+        await interaction.editReply("Could not find the configured public QOTD channel.");
+        break;
+      default:
+        await interaction.editReply("No QOTD is available to post.");
     }
-    return;
   }
 }
