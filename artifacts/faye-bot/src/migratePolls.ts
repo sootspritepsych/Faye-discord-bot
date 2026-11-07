@@ -10,6 +10,7 @@ async function main(): Promise<void> {
       post_hour INTEGER NOT NULL DEFAULT 10 CHECK (post_hour BETWEEN 0 AND 23),
       post_minute INTEGER NOT NULL DEFAULT 0 CHECK (post_minute BETWEEN 0 AND 59)
     );
+    ALTER TABLE faye_poll_config ADD COLUMN IF NOT EXISTS potd_role_id TEXT;
     CREATE TABLE IF NOT EXISTS faye_poll_entries (
       id SERIAL PRIMARY KEY,
       guild_id TEXT NOT NULL,
