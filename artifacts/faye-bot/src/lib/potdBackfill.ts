@@ -1,4 +1,4 @@
-import { PermissionFlagsBits, type Client, type GuildMember } from "discord.js";
+import { PermissionFlagsBits, type Client } from "discord.js";
 import { pool } from "./database";
 import { allPollConfigs } from "./pollService";
 import { ensurePotdRole } from "./potdRoleService";
