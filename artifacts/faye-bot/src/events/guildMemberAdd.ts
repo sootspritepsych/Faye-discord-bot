@@ -1,9 +1,16 @@
 import { Client, Events, GuildMember, TextChannel, ChannelType } from "discord.js";
 import { db, guildConfig, welcomeJourneys } from "../lib/database";
 import { eq } from "drizzle-orm";
+import { assignPotdRole } from "../lib/potdRoleService";
 
 export default function registerGuildMemberAddEvent(client: Client) {
   client.on(Events.GuildMemberAdd, async (member: GuildMember) => {
+    // Assign the separate @POTD role without interfering with welcome messages.
+    try {
+      await assignPotdRole(member);
+    } catch (error) {
+      console.error("Could not auto-assign @POTD to " + member.id, error);
+    }
     try {
       const mainChat = "<#1351497163447734294>";
       const introChannel = "<#1353073991446691890>";
