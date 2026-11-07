@@ -42,7 +42,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const hasStaffRole = interaction.member.roles.cache.has(STAFF_ROLE_ID);
+  const hasStaffRole = Array.isArray(interaction.member.roles)
+    ? interaction.member.roles.includes(STAFF_ROLE_ID)
+    : interaction.member.roles.cache.has(STAFF_ROLE_ID);
 
   if (!hasStaffRole) {
     await interaction.reply({
