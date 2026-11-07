@@ -5,7 +5,7 @@ import { startWelcomeJourneyScheduler } from "../lib/welcomeJourneyScheduler";
 import { startFayeMoodRotation } from "../lib/fayeMoodService";
 import { startQotdScheduler } from "../lib/qotdScheduler";
 import { startPollScheduler } from "../lib/pollScheduler";
-import { initializePotdRoles } from "../lib/potdRoleService";
+import { initializePotdRoles, backfillExistingQotdMembers } from "../lib/potdRoleService";
 
 export default function registerReadyEvent(client: Client): void {
   client.once(Events.ClientReady, async (readyClient) => {
@@ -16,6 +16,10 @@ export default function registerReadyEvent(client: Client): void {
 
     try {
       await initializePotdRoles(client);
+      // Run the potentially lengthy migration without delaying other schedulers.
+      void backfillExistingQotdMembers(client).catch(error =>
+        console.error("❌ POTD member backfill failed:", error)
+      );
       startPollScheduler(client);
       await loadReminders(client);
       await startWisdomScheduler(client);
