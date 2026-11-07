@@ -1,4 +1,6 @@
 import { pool } from "./lib/database";
+import { importPolls } from "./lib/pollService";
+import { SEED_POLLS } from "./commands/poll";
 
 async function main(): Promise<void> {
   await pool.query(`
@@ -30,6 +32,21 @@ async function main(): Promise<void> {
     CREATE INDEX IF NOT EXISTS faye_poll_unused_idx
       ON faye_poll_entries (guild_id, approved, used);
   `);
+  // Garden of Harmony's existing private testing channel.
+  // Preserve any later channel chosen by staff: never overwrite existing config.
+  const guildId = process.env.DISCORD_GUILD_ID;
+  if (guildId) {
+    await pool.query(
+      "INSERT INTO faye_poll_config (guild_id,channel_id) VALUES ($1,$2) " +
+      "ON CONFLICT (guild_id) DO NOTHING",
+      [guildId, "1568435643581730917"]
+    );
+    // Safe and idempotent across redeployments; previously used polls are never re-added.
+    const result = await importPolls(guildId, "Faye starter polls", SEED_POLLS, true);
+    console.log("🗳️ Starter polls: " + result.added + " added, " + result.duplicates + " duplicates skipped");
+  } else {
+    console.warn("⚠️ DISCORD_GUILD_ID missing; configure poll channel and queue in Discord");
+  }
   console.log("🗳️ Faye polling database migration complete");
 }
 main().then(() => process.exit(0)).catch(err => {
