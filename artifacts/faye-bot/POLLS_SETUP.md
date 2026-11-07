@@ -7,12 +7,8 @@ This feature lives alongside QOTD and **does not change QOTD's 2 PM America/Chic
 1. Make sure Railway is configured to run the `artifacts/faye-bot` start script, which now runs `migrateQotd.ts`, `migratePolls.ts`, slash-command registration, then Faye. These migrations are safe to rerun and create new poll tables without deleting existing data.
 2. **Use the existing channel** with Discord channel ID `1568435643581730917`. Keep it private while testing; later make this *same channel* public through Discord channel permissions.
 3. Grant Faye **View Channel**, **Send Messages**, and **Send Polls** permission in that private channel. (Send Polls is a distinct Discord permission.)
-4. As an admin with **Manage Server** permission, run:
-    - `/poll channel channel:<select the private channel with ID 1568435643581730917>`
-    - `/poll time time:10:00` (optional; this is the default)
-    - `/poll seed` (adds 35 mixed starter polls without using a file)
-    - `/poll status`
-5. **All polls, including `/poll post`, go only to the configured private channel.** Members without permission to view that channel will not see the posts. Once the next 10 AM Central occurs, Faye will post an approved unused poll there. The scheduler is process-based; Railway must have Faye running to post.
+4. **No Discord setup commands are required for the first launch:** the migration selects this existing private channel automatically and imports the 35 starter polls into the approved queue. As staff, run `/poll status` to check the channel, queue, and time after the Railway deployment succeeds. `/poll seed` can be run again safely, but will skip duplicates.
+5. **All polls, including `/poll post`, go only to the configured private channel.** Members without permission to view that channel will not see the posts. Once the next 10 AM Central occurs, Faye will post an approved unused poll there (provided the bot has Send Polls permission). The scheduler is process-based; Railway must have Faye running to post.
 
 ## Staff commands
 
