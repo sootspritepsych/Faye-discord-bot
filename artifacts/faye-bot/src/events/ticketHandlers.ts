@@ -1,5 +1,8 @@
 import {
   ButtonInteraction,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   ChannelType,
   PermissionFlagsBits,
 } from "discord.js";
@@ -109,32 +112,14 @@ async function openTicket(interaction: ButtonInteraction) {
       roles: [FAYE_GUIDE_ROLE_ID],
     },
     components: [
-      {
-        type: 1,
-        components: [
-          {
-            type: 2,
-            custom_id: "ticket_claim",
-            label: "Claim",
-            style: 3,
-            emoji: "🍃",
-          },
-          {
-            type: 2,
-            custom_id: "ticket_close",
-            label: "Close",
-            style: 2,
-            emoji: "🔒",
-          },
-          {
-            type: 2,
-            custom_id: "ticket_delete",
-            label: "Delete",
-            style: 4,
-            emoji: "🗑️",
-          },
-        ],
-      },
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId("ticket_claim").setLabel("Claim")
+          .setStyle(ButtonStyle.Success).setEmoji("🍃"),
+        new ButtonBuilder().setCustomId("ticket_close").setLabel("Close")
+          .setStyle(ButtonStyle.Secondary).setEmoji("🔒"),
+        new ButtonBuilder().setCustomId("ticket_delete").setLabel("Delete")
+          .setStyle(ButtonStyle.Danger).setEmoji("🗑️")
+      ),
     ],
   });
 
