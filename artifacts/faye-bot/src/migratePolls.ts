@@ -31,6 +31,11 @@ async function main(): Promise<void> {
       message_id TEXT,
       PRIMARY KEY (guild_id, local_date)
     );
+    CREATE TABLE IF NOT EXISTS faye_potd_role_backfill (
+      guild_id TEXT PRIMARY KEY,
+      synced_count INTEGER NOT NULL DEFAULT 0,
+      completed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
     CREATE INDEX IF NOT EXISTS faye_poll_unused_idx
       ON faye_poll_entries (guild_id, approved, used);
   `);
