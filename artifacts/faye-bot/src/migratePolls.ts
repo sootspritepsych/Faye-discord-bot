@@ -1,6 +1,7 @@
 import { pool } from "./lib/database";
 import { importPolls } from "./lib/pollService";
 import { SEED_POLLS } from "./commands/poll";
+import { EXTRA_POLLS } from "./lib/pollExtra200";
 
 async function main(): Promise<void> {
   await pool.query(`
@@ -45,6 +46,9 @@ async function main(): Promise<void> {
     // Safe and idempotent across redeployments; previously used polls are never re-added.
     const result = await importPolls(guildId, "Faye starter polls", SEED_POLLS, true);
     console.log("🗳️ Starter polls: " + result.added + " added, " + result.duplicates + " duplicates skipped");
+    const extra = await importPolls(guildId, "Faye 200-poll expansion", EXTRA_POLLS, true);
+    console.log("🗳️ Extra polls: " + extra.added + " added, " + extra.duplicates + " duplicates skipped, " + extra.invalid.length + " invalid");
+    if (extra.invalid.length) console.warn("⚠️ Poll import errors:", extra.invalid);
   } else {
     console.warn("⚠️ DISCORD_GUILD_ID missing; configure poll channel and queue in Discord");
   }
