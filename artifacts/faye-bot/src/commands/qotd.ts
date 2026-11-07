@@ -318,11 +318,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const counts = totals.rows[0];
     await interaction.editReply(
       "🌸 **QOTD yearly collection**" +
-      "\\nApproved total (including previously posted): **" + counts.approved_total + " / 365**" +
-      "\\nApproved unused: **" + counts.unused + "**" +
-      "\\nPreviously posted: **" + counts.posted + "**" +
-      "\\nPending member suggestions: **" + counts.pending + "**" +
-      "\\nScheduled at 2:00 PM America/Chicago"
+      "\nApproved total (including previously posted): **" + counts.approved_total + " / 365**" +
+      "\nApproved unused: **" + counts.unused + "**" +
+      "\nPreviously posted: **" + counts.posted + "**" +
+      "\nPending member suggestions: **" + counts.pending + "**" +
+      "\nScheduled at 2:00 PM America/Chicago"
     );
     return;
   }
