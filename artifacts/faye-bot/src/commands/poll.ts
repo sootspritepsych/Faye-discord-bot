@@ -55,7 +55,7 @@ export const data = new SlashCommandBuilder()
       .setMinLength(5).setMaxLength(5).setRequired(true)))
   .addSubcommand(s => s.setName("status").setDescription("[Staff] View poll schedule and queue counts"));
 
-const SEED_POLLS = [
+export const SEED_POLLS = [
   "Which magical ability would be the most inconvenient? | Talking to pigeons | Glowing when embarrassed | Floating 2 inches | Predicting sneezes",
   "Which cozy evening wins? | Reading under a blanket | Gaming with snacks | Comfort show marathon | Crafting and music",
   "One animal becomes your legal advisor. Who? | Cat | Raccoon | Crow | Capybara",
