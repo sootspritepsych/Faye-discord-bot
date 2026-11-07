@@ -8,6 +8,7 @@ export type PollConfig = {
   channel_id: string | null;
   post_hour: number;
   post_minute: number;
+  potd_role_id: string | null;
 };
 type PollRow = { id: number; question: string; answers: string[] };
 
@@ -121,16 +122,16 @@ export async function postPoll(
     "ON CONFLICT DO NOTHING RETURNING poll_id", [guildId, date, poll.id]);
   if (!claim.rowCount) return { status: "already_posted" };
 
-  // Native Discord poll, 24 hours, single selection, no member pings.
+  // Native Discord poll, 24 hours, single selection, and the separate @POTD ping.
   const message = await channel.send({
-    content: "🗳️ **Daily Poll · Garden of Harmony**",
+    content: (config.potd_role_id ? `<@&${config.potd_role_id}> ` : "") + "🗳️ **Daily Poll · Garden of Harmony**",
     poll: {
       question: { text: poll.question },
       answers: poll.answers.map(text => ({ text })),
       duration: 24,
       allowMultiselect: false,
     },
-    allowedMentions: { parse: [] },
+    allowedMentions: { parse: [], roles: config.potd_role_id ? [config.potd_role_id] : [] },
   });
   await pool.query("UPDATE faye_poll_entries SET used=TRUE WHERE id=$1", [poll.id]);
   await pool.query(
