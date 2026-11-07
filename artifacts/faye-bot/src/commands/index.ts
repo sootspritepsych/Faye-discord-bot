@@ -2,6 +2,7 @@ import { Collection, ChatInputCommandInteraction } from "discord.js";
 import * as confess from "./confess";
 import * as suggest from "./suggest";
 import * as qotd from "./qotd";
+import * as poll from "./poll";
 import * as sticky from "./sticky";
 import * as reminder from "./reminder";
 import * as setup from "./setup";
@@ -31,6 +32,7 @@ const commandList: Command[] = [
   confess,
   suggest,
   qotd,
+  poll,
   sticky,
   reminder,
   setup,

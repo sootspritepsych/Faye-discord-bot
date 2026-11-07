@@ -88,7 +88,7 @@ Rules:
 - Return only the compliment sentence, no quotes.
 `;
 
-      const aiCompliment = await getFayeResponse(aiPrompt);
+      const aiCompliment = await getFayeResponse(aiPrompt, interaction.user.username);
 
       if (aiCompliment && aiCompliment.length < 300) {
         compliment = aiCompliment.trim();

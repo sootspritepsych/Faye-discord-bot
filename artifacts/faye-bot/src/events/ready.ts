@@ -4,6 +4,7 @@ import { startWisdomScheduler } from "../lib/wisdomScheduler";
 import { startWelcomeJourneyScheduler } from "../lib/welcomeJourneyScheduler";
 import { startFayeMoodRotation } from "../lib/fayeMoodService";
 import { startQotdScheduler } from "../lib/qotdScheduler";
+import { startPollScheduler } from "../lib/pollScheduler";
 
 export default function registerReadyEvent(client: Client): void {
   client.once(Events.ClientReady, async (readyClient) => {
@@ -11,6 +12,7 @@ export default function registerReadyEvent(client: Client): void {
 
     startFayeMoodRotation(client);
     startQotdScheduler(client);
+    startPollScheduler(client);
 
     try {
       await loadReminders(client);

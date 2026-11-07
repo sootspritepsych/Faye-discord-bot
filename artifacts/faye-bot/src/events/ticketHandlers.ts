@@ -1,5 +1,9 @@
 import {
   ButtonInteraction,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelType,
   PermissionFlagsBits,
 } from "discord.js";
 import { eq } from "drizzle-orm";
@@ -69,21 +73,22 @@ async function openTicket(interaction: ButtonInteraction) {
 
   const ticketChannel = await guild.channels.create({
     name: `ticket-${ticketNumber}-${safeUsername}`,
+    type: ChannelType.GuildText,
     parent: TICKET_CATEGORY_ID,
     permissionOverwrites: [
       {
         id: guild.roles.everyone.id,
-        deny: ["ViewChannel"],
+        deny: [PermissionFlagsBits.ViewChannel],
       },
       {
         id: interaction.user.id,
-        allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
       },
       ...(staffRole
         ? [
             {
               id: staffRole.id,
-              allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
             },
           ]
         : []),
@@ -107,32 +112,14 @@ async function openTicket(interaction: ButtonInteraction) {
       roles: [FAYE_GUIDE_ROLE_ID],
     },
     components: [
-      {
-        type: 1,
-        components: [
-          {
-            type: 2,
-            custom_id: "ticket_claim",
-            label: "Claim",
-            style: 3,
-            emoji: "🍃",
-          },
-          {
-            type: 2,
-            custom_id: "ticket_close",
-            label: "Close",
-            style: 2,
-            emoji: "🔒",
-          },
-          {
-            type: 2,
-            custom_id: "ticket_delete",
-            label: "Delete",
-            style: 4,
-            emoji: "🗑️",
-          },
-        ],
-      },
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId("ticket_claim").setLabel("Claim")
+          .setStyle(ButtonStyle.Success).setEmoji("🍃"),
+        new ButtonBuilder().setCustomId("ticket_close").setLabel("Close")
+          .setStyle(ButtonStyle.Secondary).setEmoji("🔒"),
+        new ButtonBuilder().setCustomId("ticket_delete").setLabel("Delete")
+          .setStyle(ButtonStyle.Danger).setEmoji("🗑️")
+      ),
     ],
   });
 

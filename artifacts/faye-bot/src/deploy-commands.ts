@@ -17,13 +17,13 @@ async function deployCommands() {
 
   try {
     if (guildId) {
-      await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+      await rest.put(Routes.applicationGuildCommands(clientId!, guildId), {
         body: commandsArray,
       });
 
       console.log(`✅ Registered ${commandsArray.length} commands to guild ${guildId}`);
     } else {
-      await rest.put(Routes.applicationCommands(clientId), {
+      await rest.put(Routes.applicationCommands(clientId!), {
         body: commandsArray,
       });
 
