@@ -1,5 +1,6 @@
 import {
   ButtonInteraction,
+  ChannelType,
   PermissionFlagsBits,
 } from "discord.js";
 import { eq } from "drizzle-orm";
@@ -69,21 +70,22 @@ async function openTicket(interaction: ButtonInteraction) {
 
   const ticketChannel = await guild.channels.create({
     name: `ticket-${ticketNumber}-${safeUsername}`,
+    type: ChannelType.GuildText,
     parent: TICKET_CATEGORY_ID,
     permissionOverwrites: [
       {
         id: guild.roles.everyone.id,
-        deny: ["ViewChannel"],
+        deny: [PermissionFlagsBits.ViewChannel],
       },
       {
         id: interaction.user.id,
-        allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
       },
       ...(staffRole
         ? [
             {
               id: staffRole.id,
-              allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
             },
           ]
         : []),
