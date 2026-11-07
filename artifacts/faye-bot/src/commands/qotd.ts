@@ -11,7 +11,7 @@ import {
   PermissionFlagsBits,
   type Attachment,
 } from "discord.js";
-import { db, qotdSuggestions, guildConfig } from "../lib/database";
+import { db, qotdSuggestions, guildConfig, pool } from "../lib/database";
 import { and, eq } from "drizzle-orm";
 import { postQotd, QOTD_ROLE_ID } from "../lib/qotdService";
 
@@ -82,6 +82,9 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand((sub) =>
     sub.setName("queue").setDescription("[Mod] View approved unused questions")
+  )
+  .addSubcommand((sub) =>
+    sub.setName("status").setDescription("[Mod] Count QOTDs, including posted questions")
   )
   .addSubcommand((sub) =>
     idOption(sub.setName("use").setDescription("[Mod] Post a question now (counts as today's QOTD)"))
@@ -295,6 +298,32 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
     await interaction.editReply("Only staff members can use this command. 🍃");
+    return;
+  }
+
+  if (sub === "status") {
+    const totals = await pool.query<{
+      approved_total: number;
+      unused: number;
+      posted: number;
+      pending: number;
+    }>(
+      "SELECT COUNT(*) FILTER (WHERE approved)::int AS approved_total, " +
+      "COUNT(*) FILTER (WHERE approved AND NOT COALESCE(used,FALSE))::int AS unused, " +
+      "COUNT(*) FILTER (WHERE approved AND used)::int AS posted, " +
+      "COUNT(*) FILTER (WHERE NOT approved)::int AS pending " +
+      "FROM faye_qotd_suggestions WHERE guild_id=$1",
+      [guildId]
+    );
+    const counts = totals.rows[0];
+    await interaction.editReply(
+      "🌸 **QOTD yearly collection**" +
+      "\\nApproved total (including previously posted): **" + counts.approved_total + " / 365**" +
+      "\\nApproved unused: **" + counts.unused + "**" +
+      "\\nPreviously posted: **" + counts.posted + "**" +
+      "\\nPending member suggestions: **" + counts.pending + "**" +
+      "\\nScheduled at 2:00 PM America/Chicago"
+    );
     return;
   }
 
