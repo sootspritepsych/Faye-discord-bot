@@ -2,6 +2,7 @@ import { pool } from "./lib/database";
 import { importPolls } from "./lib/pollService";
 import { SEED_POLLS } from "./commands/poll";
 import { EXTRA_POLLS } from "./lib/pollExtra200";
+import { seedAnnualQueues } from "./lib/yearQueueSeeder";
 
 async function main(): Promise<void> {
   await pool.query(`
@@ -54,6 +55,8 @@ async function main(): Promise<void> {
     const extra = await importPolls(guildId, "Faye 200-poll expansion", EXTRA_POLLS, true);
     console.log("🗳️ Extra polls: " + extra.added + " added, " + extra.duplicates + " duplicates skipped, " + extra.invalid.length + " invalid");
     if (extra.invalid.length) console.warn("⚠️ Poll import errors:", extra.invalid);
+    // Approved totals include previously used posts. Do not touch pending suggestions.
+    await seedAnnualQueues(guildId);
   } else {
     console.warn("⚠️ DISCORD_GUILD_ID missing; configure poll channel and queue in Discord");
   }

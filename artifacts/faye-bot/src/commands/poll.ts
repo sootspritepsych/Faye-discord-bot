@@ -190,6 +190,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         "🗳️ **Daily poll status**\n" +
         "Channel: " + (config?.channel_id ? "<#" + config.channel_id + ">" : "Not configured") +
         "\nTime: **" + time + " America/Chicago**" +
+        "\nApproved total (including used): **" + (Number(result.rows[0]?.unused ?? 0) + Number(result.rows[0]?.used ?? 0)) + " / 365**" +
         "\nApproved, unused: **" + result.rows[0]?.unused + "**" +
         "\nPending suggestions: **" + result.rows[0]?.pending + "**" +
         "\nPreviously used: **" + result.rows[0]?.used + "**" +
