@@ -12,7 +12,7 @@ This feature lives alongside QOTD and **does not change QOTD's 2 PM America/Chic
 
 ## @POTD role and notification permissions
 
-On startup, Faye looks for an existing **POTD** role and reuses it, or creates a separate one if none exists. Faye saves its role ID in the poll config. Each new member (non-bot) automatically receives @POTD from Faye's GuildMemberAdd handler. This does **not** add the role retroactively to existing members; assign it manually or offer it through Discord Onboarding for existing users. The existing @QOTD role and QOTD pings remain unchanged.
+On startup, Faye looks for an existing **POTD** role and reuses it, or creates a separate one if none exists. Faye saves its role ID in the poll config. Each new member (non-bot) automatically receives @POTD from Faye's GuildMemberAdd handler. On startup, Faye also runs a **one-time backfill for existing members who already have @QOTD**, giving them @POTD without removing or changing @QOTD. This may take several minutes for a large server. The database records successful completion so restarts do not repeat the full member scan; failed individual assignments are retried on a future restart. Members without @QOTD are not added retroactively. The existing @QOTD role and QOTD pings remain unchanged.
 
 Ensure Faye has **Manage Roles** server permission, its highest role is positioned **above POTD**, and it has **Mention @everyone, @here, and All Roles** permission in the poll channel to ping @POTD (the role is created non-mentionable to avoid uncontrolled mass pings by other members). If Faye lacks those permissions, the logs warn and new members might not receive @POTD, or the mention might not notify. The poll still posts normally.
 
