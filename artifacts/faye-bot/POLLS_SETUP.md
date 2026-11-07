@@ -7,7 +7,7 @@ This feature lives alongside QOTD and **does not change QOTD's 2 PM America/Chic
 1. Make sure Railway is configured to run the `artifacts/faye-bot` start script, which now runs `migrateQotd.ts`, `migratePolls.ts`, slash-command registration, then Faye. These migrations are safe to rerun and create new poll tables without deleting existing data.
 2. **Use the existing channel** with Discord channel ID `1568435643581730917`. Keep it private while testing; later make this *same channel* public through Discord channel permissions.
 3. Grant Faye **View Channel**, **Send Messages**, and **Send Polls** permission in that private channel. (Send Polls is a distinct Discord permission.)
-4. **No Discord setup commands are required for the first launch:** the migration selects this existing private channel automatically and imports the 35 starter polls plus 200 additional polls into the approved queue. As staff, run `/poll status` to check the channel, queue, and time after the Railway deployment succeeds. `/poll seed` can be run again safely, but will skip duplicates.
+4. **No Discord setup commands are required for the first launch:** the migration selects this existing private channel automatically and imports the 35 starter polls plus 200 additional polls, then tops the approved catalog up to **365 total polls** (including any previously posted polls). As staff, run `/poll status` to check the channel, queue, and time after the Railway deployment succeeds. `/poll seed` can be run again safely, but will skip duplicates.
 5. **All polls, including `/poll post`, go only to the configured private channel.** Members without permission to view that channel will not see the posts. Once the next 10 AM Central occurs, Faye will post an approved unused poll there (provided the bot has Send Polls permission). The scheduler is process-based; Railway must have Faye running to post.
 
 ## @POTD role and notification permissions
@@ -16,7 +16,16 @@ On startup, Faye looks for an existing **POTD** role and reuses it, or creates a
 
 Ensure Faye has **Manage Roles** server permission, its highest role is positioned **above POTD**, and it has **Mention @everyone, @here, and All Roles** permission in the poll channel to ping @POTD (the role is created non-mentionable to avoid uncontrolled mass pings by other members). If Faye lacks those permissions, the logs warn and new members might not receive @POTD, or the mention might not notify. The poll still posts normally.
 
-The 200 extra polls are imported once each on startup using a question-level unique constraint, and the import is safe on redeploy or restart. No public poll is posted by the import process.
+The 200 extra polls are imported idempotently on startup using a question-level unique constraint, then a separate annual question seeder fills each approved catalog to **365 polls and 365 QOTDs** (including previously used entries). Existing entries are never deleted or overwritten, and pending member submissions remain unapproved. The seed runs within a database transaction and never posts anything. If a catalog already exceeds 365, it is left intact.
+
+## One year's worth of daily questions
+
+- Native polls: **365 approved total** including previously posted polls, at 10 AM Central with @POTD.
+- QOTD: **365 approved total** including previously posted QOTDs, at 2 PM Central with @QOTD.
+- Check counts with `/poll status` and **`/qotd status`** (both visible only to staff).
+- The catalogs count **used** posts toward 365. Remaining unused posts are shown separately. To guarantee another full 365 days *starting today*, you would instead need 365 *unused* entries per catalog.
+- The annual question banks contain 181 new native poll candidates and 487 new standalone QOTD candidates. Questions are deduplicated against existing used, unused, and pending submissions. Once the approved total reaches 365, no extra candidates are imported.
+- Seeded questions are automatically approved but never posted immediately. Existing member-submitted QOTDs and polls are preserved, and Faye retains her independent posting schedules.
 
 ## Staff commands
 
@@ -46,4 +55,4 @@ The private testing channel **ID `1568435643581730917` stays the polling channel
 - If a Discord send fails after a daily claim, that claim **remains** to avoid accidental duplicates. Inspect channel history and Railway logs before attempting manual recovery.
 - If Faye restarts up to two hours after today's scheduled time, the scheduler attempts a same-day catch-up. It never posts before its configured time.
 - No new npm dependencies or environment variables are required.
-- This PR has not been deployed. Review or test before merging to the Railway-connected branch.
+- Updates deploy automatically from `main` to Railway when merged. Review GitHub checks and Railway logs after merging.
