@@ -6,6 +6,7 @@ import { startFayeMoodRotation } from "../lib/fayeMoodService";
 import { startQotdScheduler } from "../lib/qotdScheduler";
 import { startPollScheduler } from "../lib/pollScheduler";
 import { initializePotdRoles } from "../lib/potdRoleService";
+import { backfillPotdForQotdMembers } from "../lib/potdBackfill";
 
 export default function registerReadyEvent(client: Client): void {
   client.once(Events.ClientReady, async (readyClient) => {
@@ -17,6 +18,10 @@ export default function registerReadyEvent(client: Client): void {
     try {
       await initializePotdRoles(client);
       startPollScheduler(client);
+      // One-time role backfill can take minutes in a large server. Do not block Faye startup.
+      void backfillPotdForQotdMembers(client).catch(error =>
+        console.error("❌ POTD backfill initialization failed", error)
+      );
       await loadReminders(client);
       await startWisdomScheduler(client);
       await startWelcomeJourneyScheduler(client);
