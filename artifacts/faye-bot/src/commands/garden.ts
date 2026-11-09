@@ -1,8 +1,9 @@
 import {
-  ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder,
+  ChannelType, ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder,
 } from "discord.js";
 import {
   addGardenOrnament, gardenerStats, gardenEnabled, gardenLeaderboard,
+  getGardenAnnouncementChannel, setGardenAnnouncementChannel,
   gardenPlants, getGardenOverview, harvestGardenPlant, plantGardenSeed,
   setGardenEnabled, waterGardenPlant,
   type GardenOrnament, type GardenPeriod, type GardenRanking, type GardenSpecies,
@@ -49,6 +50,9 @@ export const data = new SlashCommandBuilder()
       .addChoices(...ornaments.map(p=>({name:p.emoji+" "+p.name.replace(/_/g," "),value:p.name})))))
   .addSubcommand(s=>s.setName("stats").setDescription("Your garden contribution, separate from chat XP")
     .addUserOption(o=>o.setName("member").setDescription("View another gardener's contributions")))
+  .addSubcommand(s=>s.setName("setchannel").setDescription("[Staff] Choose a public channel for garden activity updates")
+    .addChannelOption(o=>o.setName("channel").setDescription("Where Faye announces planting, watering, harvests and ornaments").setRequired(true)
+      .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)))
   .addSubcommand(s=>s.setName("enable").setDescription("[Staff] Start tracking community gardening"))
   .addSubcommand(s=>s.setName("disable").setDescription("[Staff] Pause garden tracking without deleting data"));
 
@@ -58,11 +62,69 @@ function topLine(entries: Awaited<ReturnType<typeof gardenLeaderboard>>) {
   ).join("\n") : "No contributions recorded yet 🌱";
 }
 
+const GARDEN_URL = "https://gardenofharmony.up.railway.app/garden";
+
+/**
+ * Broadcast successes, not errors. Members still get a private command receipt
+ * while everyone who can see the chosen public channel sees Faye's announcement.
+ * No @everyone, @here or role pings: this would overwhelm a large server.
+ */
+async function announceGarden(interaction: ChatInputCommandInteraction, embed: EmbedBuilder): Promise<void> {
+  try {
+    const guildId = interaction.guildId;
+    if (!guildId) return;
+    const announcementChannelId = await getGardenAnnouncementChannel(guildId);
+    if (announcementChannelId && interaction.guild) {
+      const target = await interaction.guild.channels.fetch(announcementChannelId).catch(() => null);
+      if (target && target.isTextBased() && "send" in target &&
+          target.permissionsFor(interaction.guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)) {
+        await target.send({ embeds: [embed], allowedMentions: { parse: [] } });
+        return;
+      }
+      console.warn("Garden announcements: configured channel unavailable; using the command channel.");
+    }
+    // By default, post a second, public message where the command was used.
+    await interaction.followUp({ embeds: [embed], allowedMentions: { parse: [] } });
+  } catch (error) {
+    // Garden actions are already committed: a missed announcement must not
+    // make successful planting/watering look like an error or award twice.
+    console.error("Garden activity announcement failed:", error);
+  }
+}
+
+function gardenUpdate(title: string, description: string, points: number) {
+  return new EmbedBuilder()
+    .setColor(0x78b987)
+    .setTitle(title)
+    .setDescription(description)
+    .addFields({ name: "🌳 The Harmony Tree grew", value: "+" + points + " growth points", inline: true })
+    .setFooter({ text: "Grown together in Garden of Harmony 🌿" })
+    .setURL(GARDEN_URL)
+    .setTimestamp();
+}
+
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ephemeral:true});
   const guildId=interaction.guildId;
   if (!guildId) {await interaction.editReply("The community garden lives inside the server. 🌳");return;}
   const sub=interaction.options.getSubcommand();
+  if (sub==="setchannel") {
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      await interaction.editReply("Only staff with **Manage Server** permission can choose the update channel.");
+      return;
+    }
+    const selected = interaction.options.getChannel("channel", true);
+    const guildChannel = interaction.guild?.channels.cache.get(selected.id);
+    if (!interaction.guild || !guildChannel || !guildChannel.isTextBased() ||
+        !guildChannel.permissionsFor(interaction.guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)) {
+      await interaction.editReply("Please choose a channel that everyone in the server can view. 🌿");
+      return;
+    }
+    await setGardenAnnouncementChannel(guildId, selected.id);
+    await interaction.editReply("🌿 Garden updates will now be posted in <#" + selected.id +
+      ">. Faye will announce planting, watering, harvesting and decorating there without pinging everyone.");
+    return;
+  }
   if (sub==="enable" || sub==="disable") {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
       await interaction.editReply("Only staff with **Manage Server** permission can do that.");
@@ -128,7 +190,16 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     await interaction.editReply(r.status==="planted"
       ?plantEmoji(species)+" You planted **"+species+" #"+r.id+"**! Others can help by running `/garden water plant_id:"+r.id+"`."
       :r.status==="daily_limit"?"You've already planted today! Come back another day. 🌱"
-      :"The garden is paused.");return;
+      :"The garden is paused.");
+    if (r.status==="planted") {
+      await announceGarden(interaction, gardenUpdate(
+        plantEmoji(species)+" A new "+species+" has been planted!",
+        "<@"+interaction.user.id+"> planted **"+species+" #"+r.id+"** in our shared garden!\n"+
+        "💧 Help it grow with `/garden water plant_id:"+r.id+"`.",
+        5
+      ));
+    }
+    return;
   }
   if (sub==="water") {
     const id=interaction.options.getInteger("plant_id",true);
@@ -139,14 +210,33 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       :r.status==="already_watered"?"You've already watered this plant today. 💧"
       :r.status==="daily_limit"?"You've watered three plants today. Thanks for helping! 🌿"
       :r.status==="missing"?"That plant isn't available or has already been harvested."
-      :"The garden is paused.");return;
+      :"The garden is paused.");
+    if (r.status==="watered") {
+      await announceGarden(interaction, gardenUpdate(
+        "💧 Someone watered the garden!",
+        "<@"+interaction.user.id+"> watered "+plantEmoji(r.species)+" **"+r.species+" #"+id+"**!\n"+
+        "🌱 **"+r.waterCount+"/3 waterings**"+
+        (r.waterCount>=3?" — it's ready for its owner to harvest!":" — it's growing stronger!"),
+        3
+      ));
+    }
+    return;
   }
   if (sub==="harvest") {
     const id=interaction.options.getInteger("plant_id",true);
     const r=await harvestGardenPlant(guildId,interaction.user.id,id);
     await interaction.editReply(r.status==="harvested"
       ?"🧺 You harvested your "+plantEmoji(r.species)+" **"+r.species+"**! The shared tree grew by **5 points**."
-      :"You can harvest only your own living plants after three waterings. 🌱");return;
+      :"You can harvest only your own living plants after three waterings. 🌱");
+    if (r.status==="harvested") {
+      await announceGarden(interaction, gardenUpdate(
+        "🧺 It's harvest time!",
+        "<@"+interaction.user.id+"> harvested "+plantEmoji(r.species)+" **"+r.species+" #"+id+"**!\n"+
+        "🌼 Thank you for helping our garden flourish.",
+        5
+      ));
+    }
+    return;
   }
   if (sub==="decorate") {
     const ornament=interaction.options.getString("ornament",true) as GardenOrnament;
@@ -155,7 +245,16 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     await interaction.editReply(r.status==="added"
       ?emoji+" Your **"+ornament.replace(/_/g," ")+"** now decorates the server's Harmony Tree!"
       :r.status==="out_of_season"?"🎄 Holiday decorating is available November–January."
-      :"You've already decorated today, or you've placed this decoration this season.");return;
+      :"You've already decorated today, or you've placed this decoration this season.");
+    if (r.status==="added") {
+      await announceGarden(interaction, gardenUpdate(
+        "🎄 The Harmony Tree has a new decoration!",
+        "<@"+interaction.user.id+"> hung "+emoji+" **"+ornament.replace(/_/g," ")+"** on our holiday tree!\n"+
+        "✨ Look for it on the live website.",
+        3
+      ));
+    }
+    return;
   }
   if (sub==="stats") {
     const target=interaction.options.getUser("member")??interaction.user;

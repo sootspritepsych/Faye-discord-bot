@@ -9,8 +9,13 @@ async function migrateGarden(): Promise<void> {
     CREATE TABLE IF NOT EXISTS faye_garden_settings (
       guild_id TEXT PRIMARY KEY,
       enabled BOOLEAN NOT NULL DEFAULT FALSE,
-      tree_name TEXT NOT NULL DEFAULT 'Harmony Tree'
+      tree_name TEXT NOT NULL DEFAULT 'Harmony Tree',
+      announcement_channel_id TEXT
     );
+
+    -- Existing deployments already have faye_garden_settings. Upgrade in-place.
+    ALTER TABLE faye_garden_settings
+      ADD COLUMN IF NOT EXISTS announcement_channel_id TEXT;
 
     CREATE TABLE IF NOT EXISTS faye_garden_activity (
       id BIGSERIAL PRIMARY KEY,
