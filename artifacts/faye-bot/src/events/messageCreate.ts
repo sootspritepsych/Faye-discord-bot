@@ -3,11 +3,14 @@ import {
   Events,
   Message,
   type Attachment,
+  PermissionFlagsBits,
+  ChannelType,
 } from "discord.js";
 
 import { eq } from "drizzle-orm";
 
 import getFayeResponse from "../lib/openai";
+import { trackGardenMessage } from "../lib/gardenService";
 
 import {
   updateStickyMessage,
@@ -1751,6 +1754,25 @@ export default function registerMessageCreateEvent(
          * Everything below this point is for messages
          * sent inside a Discord server.
          */
+        // Public, SFW conversation only: staff rooms, private threads and
+        // adults-only channels must not affect the public leaderboard.
+        const publicGardenChannel =
+          message.channel.type !== ChannelType.PrivateThread &&
+          !("nsfw" in message.channel && message.channel.nsfw === true) &&
+          "permissionsFor" in message.channel &&
+          Boolean(message.channel.permissionsFor(message.guild.roles.everyone)
+            ?.has(PermissionFlagsBits.ViewChannel));
+
+        if (publicGardenChannel) {
+          void trackGardenMessage(
+            message.guild.id,
+            message.author.id,
+            message.id,
+            message.content,
+            message.attachments.size > 0
+          ).catch(error => console.error("🌳 Garden chat tracking error:", error));
+        }
+
         await handleStickyMessage(
           client,
           message

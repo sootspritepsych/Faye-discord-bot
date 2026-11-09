@@ -5,6 +5,7 @@ import registerGuildMemberAddEvent from "./events/guildMemberAdd";
 import registerMessageCreateEvent from "./events/messageCreate";
 import registerInteractionCreateEvent from "./events/interactionCreate";
 import registerVoiceStateUpdateEvent from "./events/voiceStateUpdate";
+import registerGardenReactionEvent from "./events/messageReactionAdd";
 
 const token = process.env.DISCORD_BOT_TOKEN;
 
@@ -18,11 +19,12 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildVoiceStates,
   ],
-  partials: [Partials.Channel, Partials.Message],
+  partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User],
 });
 
 async function main() {
@@ -33,6 +35,7 @@ async function main() {
   registerMessageCreateEvent(client);
   registerInteractionCreateEvent(client);
   registerVoiceStateUpdateEvent(client);
+  registerGardenReactionEvent(client);
 
   await client.login(token);
 }

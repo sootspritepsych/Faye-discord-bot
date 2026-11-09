@@ -18,6 +18,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           "`/qotd suggest` — send a question of the day idea to the mods",
           "`/sticky view` — see the pinned message in this channel",
           "`/about` — learn about Faye",
+          "`/garden view/leaderboard/plant/water/harvest/decorate` — grow the shared tree",
           "`/help` — this guide",
         ].join("\n"),
       },
