@@ -8,6 +8,7 @@ import {
 import { eq } from "drizzle-orm";
 
 import getFayeResponse from "../lib/openai";
+import { trackGardenMessage } from "../lib/gardenService";
 
 import {
   updateStickyMessage,
@@ -1751,6 +1752,14 @@ export default function registerMessageCreateEvent(
          * Everything below this point is for messages
          * sent inside a Discord server.
          */
+        void trackGardenMessage(
+          message.guild.id,
+          message.author.id,
+          message.id,
+          message.content,
+          message.attachments.size > 0
+        ).catch(error => console.error("🌳 Garden chat tracking error:", error));
+
         await handleStickyMessage(
           client,
           message
