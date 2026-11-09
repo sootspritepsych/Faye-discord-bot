@@ -30,6 +30,25 @@ export async function setGardenEnabled(guildId: string, enabled: boolean): Promi
   settingsCache.delete(guildId);
 }
 
+/** Optional public channel for manual garden activity updates.
+ * Null means the channel where the member used the command.
+ */
+export async function getGardenAnnouncementChannel(guildId: string): Promise<string | null> {
+  const result = await pool.query<{ announcement_channel_id: string | null }>(
+    "SELECT announcement_channel_id FROM faye_garden_settings WHERE guild_id=$1",
+    [guildId]
+  );
+  return result.rows[0]?.announcement_channel_id ?? null;
+}
+
+export async function setGardenAnnouncementChannel(guildId: string, channelId: string): Promise<void> {
+  await pool.query(
+    "INSERT INTO faye_garden_settings (guild_id, announcement_channel_id) VALUES ($1,$2) " +
+    "ON CONFLICT (guild_id) DO UPDATE SET announcement_channel_id=EXCLUDED.announcement_channel_id",
+    [guildId, channelId]
+  );
+}
+
 /** Award only eligible actions. An action is at most one point per unique source.
  * Neither the existing XP system nor the casino is changed.
  */
