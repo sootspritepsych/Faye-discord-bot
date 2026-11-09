@@ -222,7 +222,7 @@ export async function waterGardenPlant(guildId: string, userId: string, plantId:
     const result = await client.query(
       `INSERT INTO faye_garden_waterings (guild_id,plant_id,user_id,local_date)
        VALUES ($1,$2,$3,(now() AT TIME ZONE 'America/Chicago')::date::text)
-       ON CONFLICT DO NOTHING RETURNING plant_id`,
+       ON CONFLICT DO NOTHING RETURNING local_date`,
       [guildId,plantId,userId]
     );
     if (!result.rows.length) { await client.query("ROLLBACK"); return { status: "already_watered" as const }; }
@@ -232,7 +232,7 @@ export async function waterGardenPlant(guildId: string, userId: string, plantId:
     );
     await client.query(
       "INSERT INTO faye_garden_activity (guild_id,user_id,kind,source_id,points) VALUES ($1,$2,'water',$3,3)",
-      [guildId,userId,"water:"+plantId+":"+userId+":"+(new Date().toISOString().slice(0,10))]
+      [guildId,userId,"water:"+plantId+":"+userId+":"+String(result.rows[0].local_date)]
     );
     await client.query("COMMIT");
     return { status:"watered" as const, waterCount:p.rows[0].water_count+1, species:p.rows[0].species };
