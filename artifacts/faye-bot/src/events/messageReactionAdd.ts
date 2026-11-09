@@ -11,7 +11,7 @@ export default function registerGardenReactionEvent(client: Client): void {
         ? await reaction.message.fetch()
         : reaction.message;
       const guildId = message.guildId;
-      if (!guildId || !message.author || message.author.bot) return;
+      if (!guildId || !message.author) return;
       if (message.author.id === user.id) return; // no self reactions
       await trackGardenReaction(guildId, user.id, message.id);
     } catch (error) {
