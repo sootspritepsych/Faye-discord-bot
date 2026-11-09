@@ -17,6 +17,7 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 | Command | Purpose |
 | --- | --- |
 | `/garden enable` / `/garden disable` | Staff-controlled feature toggle, keeping data when paused |
+| `/garden setchannel channel:#garden-updates` | Staff: choose a public channel for activity announcements |
 | `/garden view` | Shared tree, growth progress, top day/week/month gardeners |
 | `/garden leaderboard period:day category:chat` | Ten most active eligible chatters today |
 | `/garden leaderboard period:week category:reaction` | Ten most active emoji reactors this week |
@@ -27,6 +28,16 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 | `/garden harvest plant_id:123` | Harvest your mature plant |
 | `/garden decorate ornament:star` | Add a holiday decoration |
 | `/garden stats` | Your contribution statistics |
+
+## Public activity announcements
+
+Whenever someone successfully **plants, waters, harvests, or decorates**, Faye sends a colorful public embed celebrating the contribution and the tree's new growth points. Failed/limited actions still receive a private response only. These updates do **not** ping everyone or any role.
+
+- Use `/garden setchannel channel:#garden-updates` as a member with **Manage Server** to send all success announcements to a shared, publicly viewable channel.
+- Until a channel is configured, the bot posts public updates into the channel where members run the garden commands.
+- For fairness and to avoid spam in a large server, ordinary chats and emoji reactions contribute to garden totals silently; they do **not** each trigger a new announcement.
+- Announcement failures don't undo a successful garden action or award points twice.
+- Dashboard updates remain automatic and separate from these Discord messages.
 
 ## Anti-spam and scoring
 
