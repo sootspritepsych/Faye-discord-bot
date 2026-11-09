@@ -3,6 +3,7 @@ import * as confess from "./confess";
 import * as suggest from "./suggest";
 import * as qotd from "./qotd";
 import * as poll from "./poll";
+import * as garden from "./garden";
 import * as sticky from "./sticky";
 import * as reminder from "./reminder";
 import * as setup from "./setup";
@@ -33,6 +34,7 @@ const commandList: Command[] = [
   suggest,
   qotd,
   poll,
+  garden,
   sticky,
   reminder,
   setup,
