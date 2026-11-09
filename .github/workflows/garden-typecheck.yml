@@ -1,0 +1,32 @@
+name: Garden feature typecheck
+
+on:
+  pull_request:
+    paths:
+      - "artifacts/faye-bot/**"
+      - ".github/workflows/garden-typecheck.yml"
+  push:
+    branches:
+      - feature/community-garden-tree
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10"
+      - name: Install existing workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck Faye bot
+        run: pnpm --filter @workspace/faye-bot typecheck
