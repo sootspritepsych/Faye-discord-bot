@@ -5,7 +5,6 @@ export type GardenRanking = "all" | "chat" | "reaction";
 export type GardenSpecies = "sunflower" | "tulip" | "rose" | "lavender" | "tomato" | "carrot" | "pumpkin" | "fern";
 export type GardenOrnament = "star" | "red_bauble" | "gold_bauble" | "snowflake" | "ribbon" | "lights";
 
-const chicagoDay = "() => ''"; // Calendar dates are calculated by PostgreSQL, not the Railway host's timezone.
 const LOCAL_DAY_SQL = "(date_trunc('day', now() AT TIME ZONE 'America/Chicago') AT TIME ZONE 'America/Chicago')";
 const settingsCache = new Map<string, { enabled: boolean; until: number }>();
 const featureCacheMs = 30_000;
@@ -112,7 +111,7 @@ export async function getGardenOverview(guildId: string) {
     ),
     pool.query<{ n: string }>(
       "SELECT count(*)::text AS n FROM faye_garden_ornaments WHERE guild_id=$1 AND season=$2",
-      [guildId, new Date().getUTCFullYear()]
+      [guildId, new Date().getUTCMonth() === 0 ? new Date().getUTCFullYear() - 1 : new Date().getUTCFullYear()]
     )
   ]);
   const t = totals.rows[0];
@@ -266,7 +265,7 @@ export async function addGardenOrnament(guildId:string, userId:string, decoratio
   if (!(await gardenEnabled(guildId))) return { status:"disabled" as const };
   const month = new Date().getUTCMonth();
   if (month !== 10 && month !== 11 && month !== 0) return { status:"out_of_season" as const };
-  const season = new Date().getUTCFullYear();
+  const season = month === 0 ? new Date().getUTCFullYear() - 1 : new Date().getUTCFullYear();
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
