@@ -81,7 +81,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       content: message, category,
     });
 
-    await interaction.editReply("Your confession was posted anonymously to members. Server administrators can review the author for moderation. 🍃");
+    await interaction.editReply("Your confession was posted anonymously to other members. 🍃");
     return;
   }
 
@@ -114,13 +114,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setColor(0xc8e6c9)
       .setTitle(`💬 Anonymous Reply to Confession #${confessionId}`)
       .setDescription(message)
-      .setFooter({ text: "Anonymous to members · Admins can review · Garden of Harmony 🍃" })
+      .setFooter({ text: "Anonymous · Garden of Harmony 🍃" })
       .setTimestamp();
 
     const sent = await (channel as TextChannel).send({ embeds: [replyEmbed] });
     await db.update(confessionReplies).set({ messageId: sent.id }).where(eq(confessionReplies.id, reply.id));
 
-    await interaction.editReply(`Your reply to Confession #${confessionId} is anonymous to other members. Server administrators can review the author for moderation. 🌿`);
+    await interaction.editReply(`Your reply to Confession #${confessionId} was posted anonymously to other members. 🌿`);
   }
 }
 
