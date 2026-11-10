@@ -142,11 +142,14 @@ export async function trackGardenMessage(
   replyToMessageId?: string
 ): Promise<void> {
   const trimmed = content.trim();
-  // Don't count command spam, empty text, links-only posts or tiny repeated messages.
+  // Don't count command spam or links-only posts.
   if (trimmed.startsWith("/") || trimmed.startsWith("!") || trimmed.startsWith(".")) return;
-  if (!hasAttachment && trimmed.replace(/https?:\/\/\S+/g, "").trim().length < 8) return;
-  // QOTD replies count as five points instead of stacking with the usual chat point.
+  const readableText = trimmed.replace(/https?:\/\/\S+/g, "").trim();
+  if (!hasAttachment && readableText.length < 2) return;
+  // Even short, meaningful QOTD answers ("yes", "no") can receive the one-time reward.
+  // This counts as 5 total, rather than 5 bonus points plus the ordinary chat point.
   if (replyToMessageId && await recordDailyQotdReply(guildId,userId,replyToMessageId)) return;
+  if (!hasAttachment && readableText.length < 8) return;
   await recordGardenActivity(guildId, userId, "chat", "chat:" + messageId);
 }
 
