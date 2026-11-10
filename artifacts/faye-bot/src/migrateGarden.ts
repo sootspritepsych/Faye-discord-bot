@@ -34,6 +34,13 @@ async function migrateGarden(): Promise<void> {
       ADD CONSTRAINT faye_garden_activity_kind_check
       CHECK (kind IN ('chat','reaction','plant','water','harvest','ornament','spirit'));
 
+    CREATE TABLE IF NOT EXISTS faye_garden_milestone_state (
+      guild_id TEXT PRIMARY KEY,
+      last_stage INTEGER NOT NULL DEFAULT 0,
+      message_id TEXT,
+      posted_at TIMESTAMPTZ
+    );
+
     CREATE TABLE IF NOT EXISTS faye_garden_awards (
       guild_id TEXT NOT NULL,
       period TEXT NOT NULL CHECK (period IN ('day','week','month')),
