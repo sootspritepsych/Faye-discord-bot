@@ -47,6 +47,21 @@ To add the art, go to **Discord Server Settings → Emoji → Upload Emoji**, up
 
 **Website note:** This is server-side custom emoji rendering for Discord. The dashboard uses built-in emoji previews for new plants; adding matching full-size original plant artwork to its illustrated garden is a separate visual task.
 
+## Seasonal plants and custom Discord emojis
+
+`/garden plant` opens a private choice menu with **eight year-round plants plus four choices for the current season**. Seasons follow the America/Chicago calendar: spring March–May, summer June–August, autumn September–November, winter December–February. Each gardener may plant one seed daily. Previously planted flowers can still be watered and harvested all year; no plots or history are deleted.
+
+| Season | Exclusive planting choices |
+| --- | --- |
+| Spring | Cherry Blossom, Wisteria, Bluebell, Peony |
+| Summer | Hibiscus, Lotus, Moonflower, Glowing Mushroom |
+| Autumn | Red Maple, Chrysanthemum, Marigold, Autumn Mushroom |
+| Winter | Snowdrop, Holly, Frosted Rose, Crystal Flower |
+
+**To add your own artwork:** in your Discord server, open **Server Settings → Emoji → Upload Emoji**. Name your custom emoji using `plant_` followed by the species ID (for example, `plant_cherry_blossom`, `plant_frosted_rose`, or `plant_sunflower`). For multiword names use underscores. Faye automatically discovers matching server emojis in planting, watering, and harvesting menus and announcements. Missing custom emojis use ordinary Unicode as a fallback; no hard-coded emoji IDs or code changes are required.
+
+**Website note:** the live garden website supports the new species names and Unicode previews with the accompanying dashboard update. Discord's uploaded emoji images do not automatically become website sprite assets. Add independent website artwork if you want the same custom illustrations to appear there.
+
 ## Public activity announcements
 
 Whenever someone successfully **plants, waters, harvests, or decorates**, Faye sends a colorful public embed celebrating the contribution and the tree's new growth points. Failed/limited actions still receive a private response only. When you successfully water someone else's plant, Faye mentions that plant's owner in the public success announcement (no role pings). These updates do **not** ping everyone or any role.
