@@ -242,17 +242,35 @@ export async function plantGardenSeed(guildId: string, userId: string, species: 
   finally { client.release(); }
 }
 
-export async function waterGardenPlant(guildId: string, userId: string, plantId: number) {
+/** Live, waterable plants owned by a particular member. Only unharvested plots
+ * below three waterings are offered; fetching an extra row supports paging. */
+export async function waterableGardenPlants(guildId: string, ownerId: string, offset = 0, limit = 26) {
+  const result = await pool.query<{ id: string; species: GardenSpecies; water_count: number }>(
+    `SELECT id, species, water_count FROM faye_garden_plants
+     WHERE guild_id=$1 AND owner_id=$2 AND harvested_at IS NULL AND water_count<3
+     ORDER BY planted_at DESC, id DESC LIMIT $3 OFFSET $4`,
+    [guildId, ownerId, Math.max(1, Math.min(limit, 26)), Math.max(0, offset)]
+  );
+  return result.rows;
+}
+
+export async function waterGardenPlant(guildId: string, userId: string, plantId: number, expectedOwnerId?: string) {
   if (!(await gardenEnabled(guildId))) return { status: "disabled" as const };
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const p = await client.query<{ id: string; water_count: number; species: string }>(
-      "SELECT id, water_count, species FROM faye_garden_plants " +
+    const p = await client.query<{ id: string; owner_id: string; water_count: number; species: string }>(
+      "SELECT id, owner_id, water_count, species FROM faye_garden_plants " +
       "WHERE guild_id=$1 AND id=$2 AND harvested_at IS NULL FOR UPDATE",
       [guildId, plantId]
     );
     if (!p.rows.length) { await client.query("ROLLBACK"); return { status: "missing" as const }; }
+    if (expectedOwnerId && p.rows[0].owner_id !== expectedOwnerId) {
+      await client.query("ROLLBACK"); return { status: "wrong_owner" as const };
+    }
+    if (p.rows[0].water_count >= 3) {
+      await client.query("ROLLBACK"); return { status: "mature" as const };
+    }
     const cap = await client.query<{n:string}>(
       `SELECT count(*)::text AS n FROM faye_garden_activity
        WHERE guild_id=$1 AND user_id=$2 AND kind='water' AND created_at >= ${LOCAL_DAY_SQL}`,
@@ -277,7 +295,7 @@ export async function waterGardenPlant(guildId: string, userId: string, plantId:
       [guildId,userId,"water:"+plantId+":"+userId+":"+String(result.rows[0].local_date)]
     );
     await client.query("COMMIT");
-    return { status:"watered" as const, waterCount:p.rows[0].water_count+1, species:p.rows[0].species };
+    return { status:"watered" as const, waterCount:p.rows[0].water_count+1, species:p.rows[0].species, ownerId:p.rows[0].owner_id };
   } catch(e) { await client.query("ROLLBACK"); throw e; }
   finally { client.release(); }
 }
