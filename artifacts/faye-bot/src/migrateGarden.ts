@@ -32,7 +32,7 @@ async function migrateGarden(): Promise<void> {
     ALTER TABLE faye_garden_activity DROP CONSTRAINT IF EXISTS faye_garden_activity_kind_check;
     ALTER TABLE faye_garden_activity
       ADD CONSTRAINT faye_garden_activity_kind_check
-      CHECK (kind IN ('chat','reaction','plant','water','harvest','ornament','spirit'));
+      CHECK (kind IN ('chat','reaction','plant','water','harvest','ornament','spirit','qotd','poll'));
 
     CREATE TABLE IF NOT EXISTS faye_garden_milestone_state (
       guild_id TEXT PRIMARY KEY,
