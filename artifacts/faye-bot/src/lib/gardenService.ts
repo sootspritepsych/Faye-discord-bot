@@ -96,17 +96,57 @@ export async function recordGardenSpirit(guildId: string, botId: string, message
   );
   return (result.rowCount??0)>0;
 }
+/** The original QOTD post is identified by its stored Discord message ID, never by
+ * looking for a role mention in arbitrary chat. Each member earns 5 total
+ * points for their first qualifying direct reply to today's daily post. */
+export async function recordDailyQotdReply(
+  guildId: string, userId: string, originalPostId: string
+): Promise<boolean> {
+  if (!(await gardenEnabled(guildId))) return false;
+  const result = await pool.query(
+    `INSERT INTO faye_garden_activity (guild_id,user_id,kind,source_id,points)
+     SELECT $1,$2,'qotd','qotd:' || q.message_id || ':' || $2,5
+     FROM qotd_daily_posts q
+     WHERE q.guild_id=$1 AND q.message_id=$3
+       AND q.local_date=(now() AT TIME ZONE 'America/Chicago')::date::text
+     ON CONFLICT (guild_id,source_id) DO NOTHING RETURNING id`,
+    [guildId,userId,originalPostId]
+  );
+  return (result.rowCount ?? 0)>0;
+}
+
+/** Native Discord poll vote; idempotent across vote changes, reconnects and
+ * duplicate gateway deliveries. Only the official daily poll posted today counts. */
+export async function recordDailyPollVote(
+  guildId: string, userId: string, pollMessageId: string
+): Promise<boolean> {
+  if (!(await gardenEnabled(guildId))) return false;
+  const result = await pool.query(
+    `INSERT INTO faye_garden_activity (guild_id,user_id,kind,source_id,points)
+     SELECT $1,$2,'poll','poll:' || p.message_id || ':' || $2,3
+     FROM faye_daily_poll_posts p
+     WHERE p.guild_id=$1 AND p.message_id=$3
+       AND p.local_date=(now() AT TIME ZONE 'America/Chicago')::date::text
+     ON CONFLICT (guild_id,source_id) DO NOTHING RETURNING id`,
+    [guildId,userId,pollMessageId]
+  );
+  return (result.rowCount ?? 0)>0;
+}
+
 export async function trackGardenMessage(
   guildId: string,
   userId: string,
   messageId: string,
   content: string,
-  hasAttachment: boolean
+  hasAttachment: boolean,
+  replyToMessageId?: string
 ): Promise<void> {
   const trimmed = content.trim();
   // Don't count command spam, empty text, links-only posts or tiny repeated messages.
   if (trimmed.startsWith("/") || trimmed.startsWith("!") || trimmed.startsWith(".")) return;
   if (!hasAttachment && trimmed.replace(/https?:\/\/\S+/g, "").trim().length < 8) return;
+  // QOTD replies count as five points instead of stacking with the usual chat point.
+  if (replyToMessageId && await recordDailyQotdReply(guildId,userId,replyToMessageId)) return;
   await recordGardenActivity(guildId, userId, "chat", "chat:" + messageId);
 }
 
@@ -140,7 +180,7 @@ export async function getGardenOverview(guildId: string) {
       "SELECT enabled, tree_name FROM faye_garden_settings WHERE guild_id=$1", [guildId]),
     pool.query<{ points: string; chats: string; reactions: string; gardeners: string }>(
       "SELECT COALESCE(sum(points),0)::text AS points," +
-      " count(*) FILTER (WHERE kind='chat')::text AS chats," +
+      " count(*) FILTER (WHERE kind IN ('chat','qotd'))::text AS chats," +
       " count(*) FILTER (WHERE kind='reaction')::text AS reactions," +
       " count(DISTINCT user_id)::text AS gardeners FROM faye_garden_activity WHERE guild_id=$1",
       [guildId]
@@ -180,13 +220,13 @@ function periodStart(period: GardenPeriod): string {
 export async function gardenLeaderboard(
   guildId: string, period: GardenPeriod, ranking: GardenRanking, limit = 10
 ) {
-  const filter = ranking === "all" ? "" : ranking === "chat" ? "AND kind='chat'" : "AND kind='reaction'";
+  const filter = ranking === "all" ? "" : ranking === "chat" ? "AND kind IN ('chat','qotd')" : "AND kind='reaction'";
   // period and ranking are unions, not free-form SQL from the user.
   const result = await pool.query<{
     user_id: string; score: string; chats: string; reactions: string; actions: string;
   }>(
     `SELECT user_id, COALESCE(sum(points),0)::text AS score,
-       count(*) FILTER (WHERE kind='chat')::text AS chats,
+       count(*) FILTER (WHERE kind IN ('chat','qotd'))::text AS chats,
        count(*) FILTER (WHERE kind='reaction')::text AS reactions,
        count(*)::text AS actions
      FROM faye_garden_activity WHERE guild_id=$1 AND created_at >= (${periodStart(period)})
@@ -208,7 +248,7 @@ export async function gardenerStats(guildId: string, userId: string) {
   const result = await pool.query<{points:string; chats:string; reactions:string; plants:string}>(
     `SELECT
       (SELECT COALESCE(sum(points),0)::text FROM faye_garden_activity WHERE guild_id=$1 AND user_id=$2) AS points,
-      (SELECT count(*)::text FROM faye_garden_activity WHERE guild_id=$1 AND user_id=$2 AND kind='chat') AS chats,
+      (SELECT count(*)::text FROM faye_garden_activity WHERE guild_id=$1 AND user_id=$2 AND kind IN ('chat','qotd')) AS chats,
       (SELECT count(*)::text FROM faye_garden_activity WHERE guild_id=$1 AND user_id=$2 AND kind='reaction') AS reactions,
       (SELECT count(*)::text FROM faye_garden_plants WHERE guild_id=$1 AND owner_id=$2) AS plants`,
     [guildId, userId]
