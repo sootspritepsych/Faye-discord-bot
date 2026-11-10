@@ -15,7 +15,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("submit")
-      .setDescription("Post an anonymous confession")
+      .setDescription("Post anonymously to members; admins may review for moderation")
       .addStringOption((opt) =>
         opt.setName("message").setDescription("Your anonymous confession").setRequired(true).setMaxLength(1000)
       )
@@ -36,7 +36,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("reply")
-      .setDescription("Anonymously reply to a confession")
+      .setDescription("Reply anonymously to members; admins may review for moderation")
       .addIntegerOption((opt) =>
         opt.setName("id").setDescription("The confession number to reply to").setRequired(true)
       )
@@ -81,7 +81,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       content: message, category,
     });
 
-    await interaction.editReply("Your confession has been whispered into the garden. 🍃 No one will know it was you.");
+    await interaction.editReply("Your confession was posted anonymously to members. Server administrators can review the author for moderation. 🍃");
     return;
   }
 
@@ -114,13 +114,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setColor(0xc8e6c9)
       .setTitle(`💬 Anonymous Reply to Confession #${confessionId}`)
       .setDescription(message)
-      .setFooter({ text: "Anonymous · Garden of Harmony 🍃" })
+      .setFooter({ text: "Anonymous to members · Admins can review · Garden of Harmony 🍃" })
       .setTimestamp();
 
     const sent = await (channel as TextChannel).send({ embeds: [replyEmbed] });
     await db.update(confessionReplies).set({ messageId: sent.id }).where(eq(confessionReplies.id, reply.id));
 
-    await interaction.editReply(`Your reply to Confession #${confessionId} has been posted anonymously. 🌿`);
+    await interaction.editReply(`Your reply to Confession #${confessionId} is anonymous to other members. Server administrators can review the author for moderation. 🌿`);
   }
 }
 
