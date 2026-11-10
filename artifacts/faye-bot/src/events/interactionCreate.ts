@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { commands } from "../commands";
 import { handleGardenViewButton } from "../lib/gardenView";
-import { handleGardenWaterInteraction } from "../commands/garden";
+import { handleGardenPlantInteraction, handleGardenWaterInteraction } from "../commands/garden";
 import {
   handleConfessionReplyButton,
   handleConfessionReplyModal,
@@ -23,6 +23,13 @@ export default function registerInteractionCreateEvent(client: Client) {
         if (!command) return;
 
         await command.execute(interaction as ChatInputCommandInteraction);
+        return;
+      }
+
+      // Seasonal seed picker (private to its original gardener)
+      if (interaction.isStringSelectMenu() &&
+          interaction.customId.startsWith("garden_plant:")) {
+        await handleGardenPlantInteraction(interaction);
         return;
       }
 
