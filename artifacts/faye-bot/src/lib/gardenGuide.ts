@@ -11,7 +11,7 @@ export function gardenGuideEmbed(): EmbedBuilder {
       { name: "🌻 2. Plant a seed", value: "Use `/garden plant` and select a flower or vegetable. You can plant once each day." },
       { name: "💧 3. Help flowers grow", value: "Use `/garden plants` for IDs, then `/garden water`. You may water three plants per day. Three waterings mature a plant." },
       { name: "🧺 4. Harvest and decorate", value: "Harvest your own mature plants with `/garden harvest`, and add seasonal decorations with `/garden decorate`." },
-      { name: "💬 5. Join in naturally", value: "Eligible chats and emoji reactions grow the tree too. Faye and Lilith help!" },
+      { name: "💬 5. Join in naturally", value: "Eligible chats give +1 point and emoji reactions give +1 point. Reply directly to today\'s official QOTD for +5 total growth points, or vote in today\'s native Daily Poll for +3. Each daily bonus counts once per member. Faye and Lilith help too!" },
       { name: "🏅 6. Celebrate progress", value: "Try `/garden profile` for a shareable card and `/garden badges` to see achievements." },
     )
     .setFooter({ text: "🌿 One community tree • A cozy, pressure-free place to grow" });
