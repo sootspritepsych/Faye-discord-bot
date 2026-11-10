@@ -359,7 +359,7 @@ export async function handleGardenHarvestInteraction(
   interaction: ButtonInteraction | StringSelectMenuInteraction
 ): Promise<void> {
   const [prefix, action, actorId, pageText] = interaction.customId.split(":");
-  if (prefix !== "garden_harvest" || !actorId || !/^\\d+$/.test(actorId) || interaction.user.id !== actorId) {
+  if (prefix !== "garden_harvest" || !actorId || !/^\d+$/.test(actorId) || interaction.user.id !== actorId) {
     await interaction.reply({ content: "🧺 This harvest menu belongs to another gardener. Run `/garden harvest` to open yours.", ephemeral: true });
     return;
   }
