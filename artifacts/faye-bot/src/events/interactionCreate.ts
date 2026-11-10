@@ -5,6 +5,7 @@ import {
   ChatInputCommandInteraction,
 } from "discord.js";
 import { commands } from "../commands";
+import { handleGardenViewButton } from "../lib/gardenView";
 import {
   handleConfessionReplyButton,
   handleConfessionReplyModal,
@@ -26,6 +27,10 @@ export default function registerInteractionCreateEvent(client: Client) {
 
       // Buttons
       if (interaction.isButton()) {
+        if (interaction.customId.startsWith("garden_panel:")) {
+          await handleGardenViewButton(interaction);
+          return;
+        }
         if (interaction.customId.startsWith("confess-reply_")) {
           await handleConfessionReplyButton(interaction);
           return;
