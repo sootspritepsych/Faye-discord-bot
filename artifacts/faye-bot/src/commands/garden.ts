@@ -61,6 +61,7 @@ function topLine(entries: Awaited<ReturnType<typeof gardenLeaderboard>>) {
 }
 
 const GARDEN_URL = "https://gardenofharmony.up.railway.app/garden";
+const GARDEN_SCENE_URL = "https://garden-of-harmony-migration-production.up.railway.app/api/garden-scene";
 
 /**
  * Broadcast successes, not errors. Members still get a private command receipt
@@ -90,7 +91,7 @@ async function announceGarden(interaction: ChatInputCommandInteraction, embed: E
   }
 }
 
-function gardenUpdate(title: string, description: string, points: number) {
+function gardenUpdate(title: string, description: string, points: number, view: "tree" | "beds" = "tree") {
   return new EmbedBuilder()
     .setColor(0x78b987)
     .setTitle(title)
@@ -98,6 +99,7 @@ function gardenUpdate(title: string, description: string, points: number) {
     .addFields({ name: "🌳 The Harmony Tree grew", value: "+" + points + " growth points", inline: true })
     .setFooter({ text: "Grown together in Garden of Harmony 🌿" })
     .setURL(GARDEN_URL)
+    .setImage(GARDEN_SCENE_URL + "?view=" + view + "&v=" + Date.now())
     .setTimestamp();
 }
 
@@ -176,7 +178,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         plantEmoji(species)+" A new "+species+" has been planted!",
         "<@"+interaction.user.id+"> planted **"+species+" #"+r.id+"** in our shared garden!\n"+
         "💧 Help it grow with `/garden water plant_id:"+r.id+"`.",
-        5
+        5,
+        "beds"
       ));
     }
     return;
@@ -197,7 +200,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         "<@"+interaction.user.id+"> watered "+plantEmoji(r.species)+" **"+r.species+" #"+id+"**!\n"+
         "🌱 **"+r.waterCount+"/3 waterings**"+
         (r.waterCount>=3?" — it's ready for its owner to harvest!":" — it's growing stronger!"),
-        3
+        3,
+        "beds"
       ));
     }
     return;
@@ -213,7 +217,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         "🧺 It's harvest time!",
         "<@"+interaction.user.id+"> harvested "+plantEmoji(r.species)+" **"+r.species+" #"+id+"**!\n"+
         "🌼 Thank you for helping our garden flourish.",
-        5
+        5,
+        "beds"
       ));
     }
     return;
