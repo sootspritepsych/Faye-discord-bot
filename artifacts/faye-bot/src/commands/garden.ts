@@ -87,7 +87,9 @@ async function announceGarden(
     const configuredId = await getGardenAnnouncementChannel(interaction.guildId);
     const configured = configuredId
       ? await interaction.guild.channels.fetch(configuredId).catch(() => null) : null;
-    const channels = [configured, interaction.channel];
+    const fallback = interaction.channelId
+      ? await interaction.guild.channels.fetch(interaction.channelId).catch(() => null) : null;
+    const channels = [configured, fallback];
     for (const channel of channels) {
       if (channel && channel.isTextBased() && "send" in channel &&
         channel.permissionsFor(interaction.guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)) {
