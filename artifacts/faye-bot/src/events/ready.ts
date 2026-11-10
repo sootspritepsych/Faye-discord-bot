@@ -1,4 +1,5 @@
 import { startGuardianConfessions } from "../lib/guardianConfessionScheduler";
+import { startJamRoomSongs } from "../lib/jamRoomSongs";
 import { Client, Events } from "discord.js";
 import { initSocialStore } from "../lib/gardenSocialStore";
 import { loadReminders } from "../lib/reminderScheduler";
@@ -23,6 +24,7 @@ export default function registerReadyEvent(client: Client): void {
 
     startFayeMoodRotation(client);
     startGuardianConfessions(client);
+    startJamRoomSongs(client);
     startQotdScheduler(client);
     startGardenAwards(client);
     startGardenMilestones(client);
