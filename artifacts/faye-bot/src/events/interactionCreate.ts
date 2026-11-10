@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { commands } from "../commands";
 import { handleGardenViewButton } from "../lib/gardenView";
-import { handleGardenWaterInteraction } from "../commands/garden";
+import { handleGardenWaterInteraction, handleGardenPlantInteraction, handleGardenHarvestInteraction } from "../commands/garden";
 import {
   handleConfessionReplyButton,
   handleConfessionReplyModal,
@@ -30,6 +30,17 @@ export default function registerInteractionCreateEvent(client: Client) {
       if ((interaction.isStringSelectMenu() || interaction.isButton()) &&
           interaction.customId.startsWith("garden_water:")) {
         await handleGardenWaterInteraction(interaction);
+        return;
+      }
+
+      // Private seed and harvest menus; only the gardener who opened one may use it.
+      if (interaction.isStringSelectMenu() && interaction.customId.startsWith("garden_plant:")) {
+        await handleGardenPlantInteraction(interaction);
+        return;
+      }
+      if ((interaction.isStringSelectMenu() || interaction.isButton()) &&
+          interaction.customId.startsWith("garden_harvest:")) {
+        await handleGardenHarvestInteraction(interaction);
         return;
       }
 

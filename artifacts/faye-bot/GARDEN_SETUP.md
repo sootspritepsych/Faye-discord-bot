@@ -7,7 +7,7 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 - One persistent server tree that evolves through six growth stages.
 - A public Top Gardener ranking, plus separate **Most Chats** and **Most Emoji Reactions Given** rankings for **today**, **this week (Monday to Sunday)**, and **this month**, using America/Chicago boundaries.
 - Flowers, vegetables and greenery: sunflower, tulip, rose, lavender, tomato, carrot, pumpkin, fern.
-- One plant per user per day. Use `/garden water member:@friend` to choose exactly which of their still-growing plants to water from a private dropdown (with pagination). Omit `member` to see your own plots. The old `plant_id` option remains available. Three waterings mature a plant; further watering is blocked, and only its owner can harvest it.
+- One plant per user per day. `/garden plant` opens a private seed menu, and `/garden water member:@friend` opens that person's growing plants (omit `member` for your own). `/garden harvest` opens only your mature plants. Dropdowns identify repeat plants by species and planting date, never a visible ID. Menus paginate as needed. Three waterings mature a plant; further watering is blocked, and only its owner can harvest it.
 - Christmas ornaments (star, colored baubles, snowflake, ribbon, lights), one per member per day in November–January.
 - A shared tree contribution total that includes chat/reaction activity and tending the garden.
 - Opt-in via staff-only `/garden enable`. No historical posts are processed; data is stored only after enabling.
@@ -22,12 +22,11 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 | `/garden leaderboard period:day category:chat` | Ten most active eligible chatters today |
 | `/garden leaderboard period:week category:reaction` | Ten most active emoji reactors this week |
 | `/garden leaderboard period:month category:all` | Total community gardener ranking this month |
-| `/garden plant species:tomato` | Plant a flower, vegetable, or fern |
-| `/garden plants` | List plots, owners and watering progress |
-| `/garden water member:@friend` | Tag a member, then select one of their plants from a dropdown |
-| `/garden water` | Choose a plant from your own plots |
-| `/garden water plant_id:123` | Existing direct-ID watering still works |
-| `/garden harvest plant_id:123` | Harvest your mature plant |
+| `/garden plant` | Open a menu to pick a flower, vegetable or fern; optional `species` shortcut still works |
+| `/garden plants` | List plant names, planting dates, owners and watering progress |
+| `/garden water member:@friend` | Select one of a tagged member's plants by name and planting date |
+| `/garden water` | Choose a plant from your own plots; no ID required |
+| `/garden harvest` | Choose one of your own mature plants from a private dropdown |
 | `/garden decorate ornament:star` | Add a holiday decoration |
 | `/garden stats` | Your contribution statistics |
 
@@ -46,7 +45,7 @@ Whenever someone successfully **plants, waters, harvests, or decorates**, Faye s
 - Eligible chat: at least 8 non-link characters (or attachment), not a command; one credited chat every 45 seconds, up to 60 credited chats daily.
 - Emoji reactions: credits **the user who reacts**, not the message author; only one reaction credited per message/user, one every 25 seconds, up to 35 credited reactions daily.
 - Self reactions and bot reactors are ignored. Reacting to a bot's QOTD is okay. Discord's native poll votes are **not** Discord emoji reactions.
-- Planting: +5 tree points; watering: +3; harvesting: +5; ornament: +3; credited chat or reaction: +1.
+- Planting: +5 tree points; watering: +3; harvesting: +5; ornament: +3; credited chat or reaction: +1. Plant database IDs remain internal to the picker option values, not shown or entered by members.
 - Those anti-spam limits deliberately make leaderboards represent healthy participation instead of unlimited raw message counts.
 - All tables are scoped by `guild_id`. No message content, attachment, member nickname, or DM text is stored in the garden system.
 - Existing XP-bottle and casino roles/currency **are not modified**.
