@@ -69,7 +69,6 @@ function topLine(entries: Awaited<ReturnType<typeof gardenLeaderboard>>) {
 
 const GARDEN_URL = "https://gardenofharmony.up.railway.app/garden";
 const GARDEN_SCENE_URL = "https://garden-of-harmony-migration-production.up.railway.app/api/garden-scene";
-const GARDEN_SCENE_URL = "https://garden-of-harmony-migration-production.up.railway.app/api/garden-scene";
 
 /**
  * Broadcast successes, not errors. Members still get a private command receipt
