@@ -6,7 +6,7 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 
 - One persistent server tree that evolves through six growth stages.
 - A public Top Gardener ranking, plus separate **Most Chats** and **Most Emoji Reactions Given** rankings for **today**, **this week (Monday to Sunday)**, and **this month**, using America/Chicago boundaries.
-- Flowers, vegetables and greenery: sunflower, tulip, rose, lavender, tomato, carrot, pumpkin, fern.
+- Eight original year-round plants remain: sunflower, tulip, rose, lavender, tomato, carrot, pumpkin, fern. Four extra species unlock during each season (16 extra, 24 total).
 - One plant per user per day. Use `/garden water member:@friend` to choose exactly which of their still-growing plants to water from a private dropdown (with pagination). Omit `member` to see your own plots. The old `plant_id` option remains available. Three waterings mature a plant; further watering is blocked, and only its owner can harvest it.
 - Christmas ornaments (star, colored baubles, snowflake, ribbon, lights), one per member per day in November–January.
 - A shared tree contribution total that includes chat/reaction activity and tending the garden.
@@ -22,7 +22,7 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 | `/garden leaderboard period:day category:chat` | Ten most active eligible chatters today |
 | `/garden leaderboard period:week category:reaction` | Ten most active emoji reactors this week |
 | `/garden leaderboard period:month category:all` | Total community gardener ranking this month |
-| `/garden plant species:tomato` | Plant a flower, vegetable, or fern |
+| `/garden plant` | Pick from an easy seasonal plant menu with emoji previews |
 | `/garden plants` | List plots, owners and watering progress |
 | `/garden water member:@friend` | Tag a member, then select one of their plants from a dropdown |
 | `/garden water` | Choose a plant from your own plots |
@@ -30,6 +30,23 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 | `/garden harvest plant_id:123` | Harvest your mature plant |
 | `/garden decorate ornament:star` | Add a holiday decoration |
 | `/garden stats` | Your contribution statistics |
+
+## Seasonal plants and custom Discord emojis
+
+The planting menu automatically offers the **eight year-round species plus the four plants for the current Central Time season**. Members are limited to **one seed per day**. Seeds already planted do not expire when the season changes; watering, harvesting and old database records continue to work.
+
+| Season (America/Chicago) | New species / emoji names to upload |
+| --- | --- |
+| Spring (March–May) | Cherry Blossom `plant_cherry_blossom`, Wisteria `plant_wisteria`, Bluebell `plant_bluebell`, Peony `plant_peony` |
+| Summer (June–August) | Hibiscus `plant_hibiscus`, Lotus `plant_lotus`, Moonflower `plant_moonflower`, Glowing Mushroom `plant_glow_mushroom` |
+| Autumn (September–November) | Red Maple `plant_red_maple`, Chrysanthemum `plant_chrysanthemum`, Marigold `plant_marigold`, Autumn Mushroom `plant_autumn_mushroom` |
+| Winter (December–February) | Snowdrop `plant_snowdrop`, Holly `plant_holly`, Frosted Rose `plant_frosted_rose`, Crystal Flower `plant_crystal_flower` |
+
+For the original eight, use `plant_sunflower`, `plant_tulip`, `plant_rose`, `plant_lavender`, `plant_tomato`, `plant_carrot`, `plant_pumpkin`, `plant_fern`.
+
+**Staff setup**: Open **Server Settings → Emoji → Upload Emoji** in the same Discord server where Faye runs. Upload each artwork and use the exact emoji name above (e.g. `plant_cherry_blossom`). Faye looks up the server's emojis by name at interaction time; no hard-coded emoji IDs, database credentials, or manual edits to source code are needed. Any missing emoji uses a standard emoji automatically. The private planting and watering dropdowns show custom art when installed, and public Discord plant/watering/harvest announcements do too.
+
+Note: Discord custom emoji rendering inside messages is separate from the live website's illustrated plant sprites. This change does not automatically add bespoke sprites to the website. The dashboard still receives the species name; add corresponding website art separately if desired.
 
 ## Public activity announcements
 
