@@ -153,7 +153,7 @@ async function showWaterPicker(
   const content = options.length
     ? "💧 Choose one of <@" + ownerId + ">'s plants to water (page " + (page+1) + ")."
     : "🌱 <@" + ownerId + "> has no plants that need water right now. They can plant with `/garden plant`!";
-  const reply = { content, components: rows, allowedMentions: { parse: [] as string[] } };
+  const reply = { content, components: rows, allowedMentions: { parse: [] as Array<"users" | "roles" | "everyone"> } };
   if (interaction.isChatInputCommand()) await interaction.editReply(reply);
   else await interaction.update(reply);
 }
