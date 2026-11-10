@@ -1,9 +1,10 @@
 import { pool } from "./database";
 import { currentGardenHoliday, type GardenDecoration } from "./gardenSeasons";
+import { isPlantAvailable, type GardenSpecies } from "./gardenPlantsCatalog";
+export type { GardenSpecies } from "./gardenPlantsCatalog";
 
 export type GardenPeriod = "day" | "week" | "month";
 export type GardenRanking = "all" | "chat" | "reaction";
-export type GardenSpecies = "sunflower" | "tulip" | "rose" | "lavender" | "tomato" | "carrot" | "pumpkin" | "fern";
 export type GardenOrnament = GardenDecoration;
 
 const LOCAL_DAY_SQL = "(date_trunc('day', now() AT TIME ZONE 'America/Chicago') AT TIME ZONE 'America/Chicago')";
@@ -260,6 +261,7 @@ export async function gardenerStats(guildId: string, userId: string) {
 }
 
 export async function plantGardenSeed(guildId: string, userId: string, species: GardenSpecies) {
+  if (!isPlantAvailable(species)) return { status: "out_of_season" as const };
   if (!(await gardenEnabled(guildId))) return { status: "disabled" as const };
   const client = await pool.connect();
   try {

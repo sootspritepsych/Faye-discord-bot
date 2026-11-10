@@ -68,6 +68,12 @@ async function migrateGarden(): Promise<void> {
       harvested_at TIMESTAMPTZ
     );
 
+    -- Expand the existing allowed species without changing or deleting old plots.
+    -- Names match src/lib/gardenPlantsCatalog.ts; this migration runs at startup.
+    ALTER TABLE faye_garden_plants DROP CONSTRAINT IF EXISTS faye_garden_plants_species_check;
+    ALTER TABLE faye_garden_plants ADD CONSTRAINT faye_garden_plants_species_check
+      CHECK (species IN ('sunflower','tulip','rose','lavender','tomato','carrot','pumpkin','fern','cherry_blossom','wisteria','bluebell','peony','hibiscus','lotus','moonflower','glow_mushroom','red_maple','chrysanthemum','marigold','autumn_mushroom','snowdrop','holly','frosted_rose','crystal_flower'));
+
     CREATE INDEX IF NOT EXISTS faye_garden_plants_guild_idx
       ON faye_garden_plants (guild_id, planted_at DESC);
 
