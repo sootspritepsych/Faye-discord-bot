@@ -30,3 +30,5 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Typecheck Faye bot
         run: pnpm --filter @workspace/faye-bot typecheck
+      - name: Test Garden and bot functionality
+        run: pnpm --filter @workspace/faye-bot test

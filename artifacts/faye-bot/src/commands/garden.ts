@@ -271,7 +271,9 @@ async function completeWater(
   const message = r.status === "watered"
     ? "💧 You watered <@" + r.ownerId + ">'s " + plantEmoji(r.species, interaction.guild) +
       " **" + speciesName(r.species) + "** (" + r.waterCount + "/3)!" +
-      (r.waterCount >= 3 ? " It's ready for its owner to harvest! 🧺" : " It's growing! 🌿")
+      (r.waterCount >= 3 ? " It's ready for its owner to harvest! 🧺" : " It's growing! 🌿") +
+      " **+" + r.points + " growth points!**" +
+      (r.firstHelpBonus ? " 🌸 Includes a +2 first-help bonus for this gardener today!" : "")
     : r.status === "already_watered" ? "You've already watered this plant today. 💧"
     : r.status === "daily_limit" ? "You've watered three plants today. Thanks for helping! 🌿"
     : r.status === "mature" ? "🌼 That plant is fully watered and ready for its owner to harvest!"
@@ -285,12 +287,14 @@ async function completeWater(
   }
   if (r.status === "watered") {
     await announceGarden(interaction, gardenUpdate(
-      "💧 A garden neighbor watered a plant!",
+      r.ownerId === interaction.user.id ? "💧 A gardener tended their plant!" : "💧 A garden neighbor helped a friend!",
       "<@" + interaction.user.id + "> watered <@" + r.ownerId + ">'s " + plantEmoji(r.species, interaction.guild) +
         " **" + speciesName(r.species) + "**!\n" +
         "🌱 **" + r.waterCount + "/3 waterings**" +
-        (r.waterCount >= 3 ? " — ready for harvest! 🧺" : " — growing stronger!"),
-      3, "beds"
+        (r.waterCount >= 3 ? " — ready for harvest! 🧺" : " — growing stronger!") +
+        "\n🌿 **+" + r.points + " growth points**" +
+        (r.firstHelpBonus ? " (including +2 for helping this gardener for the first time today!)" : ""),
+      r.points, "beds"
     ), r.ownerId !== interaction.user.id ? r.ownerId : undefined);
   }
 }

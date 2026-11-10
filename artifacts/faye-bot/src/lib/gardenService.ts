@@ -1,6 +1,7 @@
 import { pool } from "./database";
 import { currentGardenHoliday, type GardenDecoration } from "./gardenSeasons";
 import { isPlantAvailable, type GardenSpecies } from "./gardenPlantsCatalog";
+import { gardenWaterReward } from "./gardenWaterRewards";
 export type { GardenSpecies } from "./gardenPlantsCatalog";
 
 export type GardenPeriod = "day" | "week" | "month";
@@ -316,6 +317,8 @@ export async function waterGardenPlant(guildId: string, userId: string, plantId:
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    // Serialize each gardener’s daily waterings across different plants.
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))", [guildId,userId]);
     const p = await client.query<{ id: string; owner_id: string; water_count: number; species: string }>(
       "SELECT id, owner_id, water_count, species FROM faye_garden_plants " +
       "WHERE guild_id=$1 AND id=$2 AND harvested_at IS NULL FOR UPDATE",
@@ -336,6 +339,20 @@ export async function waterGardenPlant(guildId: string, userId: string, plantId:
     if (Number(cap.rows[0]?.n ?? 0) >= 3) {
       await client.query("ROLLBACK"); return { status: "daily_limit" as const };
     }
+    const ownPlant = p.rows[0].owner_id === userId;
+    // Determine whether this is the first plant watered for this friend today.
+    // Recording the entire reward in one water activity preserves badge counts
+    // and the existing three-waterings-per-day cap.
+    const alreadyHelped = ownPlant ? true : (await client.query<{ helped: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM faye_garden_waterings w
+         JOIN faye_garden_plants friend_plant ON friend_plant.id=w.plant_id AND friend_plant.guild_id=w.guild_id
+         WHERE w.guild_id=$1 AND w.user_id=$2 AND friend_plant.owner_id=$3
+           AND w.local_date=(now() AT TIME ZONE 'America/Chicago')::date::text
+       ) AS helped`,
+      [guildId,userId,p.rows[0].owner_id]
+    )).rows[0]?.helped === true;
+    const reward = gardenWaterReward(ownPlant, alreadyHelped);
     const result = await client.query(
       `INSERT INTO faye_garden_waterings (guild_id,plant_id,user_id,local_date)
        VALUES ($1,$2,$3,(now() AT TIME ZONE 'America/Chicago')::date::text)
@@ -348,11 +365,11 @@ export async function waterGardenPlant(guildId: string, userId: string, plantId:
       [guildId,plantId]
     );
     await client.query(
-      "INSERT INTO faye_garden_activity (guild_id,user_id,kind,source_id,points) VALUES ($1,$2,'water',$3,3)",
-      [guildId,userId,"water:"+plantId+":"+userId+":"+String(result.rows[0].local_date)]
+      "INSERT INTO faye_garden_activity (guild_id,user_id,kind,source_id,points) VALUES ($1,$2,'water',$3,$4)",
+      [guildId,userId,"water:"+plantId+":"+userId+":"+String(result.rows[0].local_date),reward.points]
     );
     await client.query("COMMIT");
-    return { status:"watered" as const, waterCount:p.rows[0].water_count+1, species:p.rows[0].species, ownerId:p.rows[0].owner_id };
+    return { status:"watered" as const, waterCount:p.rows[0].water_count+1, species:p.rows[0].species, ownerId:p.rows[0].owner_id, points:reward.points, firstHelpBonus:reward.firstHelpBonus };
   } catch(e) { await client.query("ROLLBACK"); throw e; }
   finally { client.release(); }
 }
