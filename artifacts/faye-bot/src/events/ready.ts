@@ -5,6 +5,7 @@ import { startWelcomeJourneyScheduler } from "../lib/welcomeJourneyScheduler";
 import { startFayeMoodRotation } from "../lib/fayeMoodService";
 import { startQotdScheduler } from "../lib/qotdScheduler";
 import { startGardenAwards } from "../lib/gardenAwardScheduler";
+import { startGardenMilestones } from "../lib/gardenMilestoneScheduler";
 import { startPollScheduler } from "../lib/pollScheduler";
 import { initializePotdRoles } from "../lib/potdRoleService";
 import { backfillPotdForQotdMembers } from "../lib/potdBackfill";
@@ -16,6 +17,7 @@ export default function registerReadyEvent(client: Client): void {
     startFayeMoodRotation(client);
     startQotdScheduler(client);
     startGardenAwards(client);
+    startGardenMilestones(client);
 
     try {
       await initializePotdRoles(client);
