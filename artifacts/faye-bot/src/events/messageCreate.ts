@@ -10,7 +10,7 @@ import {
 import { eq } from "drizzle-orm";
 
 import getFayeResponse from "../lib/openai";
-import { trackGardenMessage } from "../lib/gardenService";
+import { trackGardenMessage, recordGardenSpirit } from "../lib/gardenService";
 
 import {
   updateStickyMessage,
@@ -1655,6 +1655,17 @@ export default function registerMessageCreateEvent(
          */
         if (message.author.bot) {
           if (message.inGuild()) {
+            const isGardenSpirit = message.author.id===client.user.id ||
+              message.author.id===process.env.LILITH_BOT_ID;
+            const publicGardenMessage = message.channel.type!==ChannelType.PrivateThread &&
+              !("nsfw" in message.channel && message.channel.nsfw===true) &&
+              "permissionsFor" in message.channel &&
+              Boolean(message.channel.permissionsFor(message.guild.roles.everyone)
+                ?.has(PermissionFlagsBits.ViewChannel));
+            if(isGardenSpirit && publicGardenMessage && message.content.trim().length>=8) {
+              void recordGardenSpirit(message.guild.id,message.author.id,message.id)
+                .catch(error=>console.error("🌳 Spirit growth error:",error));
+            }
             await maybeRespondToLilith(
               message
             );

@@ -1,9 +1,10 @@
 import { pool } from "./database";
+import { currentGardenHoliday, type GardenDecoration } from "./gardenSeasons";
 
 export type GardenPeriod = "day" | "week" | "month";
 export type GardenRanking = "all" | "chat" | "reaction";
 export type GardenSpecies = "sunflower" | "tulip" | "rose" | "lavender" | "tomato" | "carrot" | "pumpkin" | "fern";
-export type GardenOrnament = "star" | "red_bauble" | "gold_bauble" | "snowflake" | "ribbon" | "lights";
+export type GardenOrnament = GardenDecoration;
 
 const LOCAL_DAY_SQL = "(date_trunc('day', now() AT TIME ZONE 'America/Chicago') AT TIME ZONE 'America/Chicago')";
 const settingsCache = new Map<string, { enabled: boolean; until: number }>();
@@ -77,6 +78,24 @@ export async function recordGardenActivity(
   return (result.rowCount ?? 0) > 0;
 }
 
+/** Faye and Lilith earn small, capped spirit-growth rewards without competing
+ * against human gardeners on the leaderboard. */
+export async function recordGardenSpirit(guildId: string, botId: string, messageId: string): Promise<boolean> {
+  if (!(await gardenEnabled(guildId))) return false;
+  const result = await pool.query(
+    `INSERT INTO faye_garden_activity (guild_id,user_id,kind,source_id,points)
+     SELECT $1,$2,'spirit',$3,2
+     WHERE (SELECT count(*) FROM faye_garden_activity
+       WHERE guild_id=$1 AND user_id=$2 AND kind='spirit'
+         AND created_at >= ${LOCAL_DAY_SQL}) < 24
+     AND NOT EXISTS (SELECT 1 FROM faye_garden_activity
+       WHERE guild_id=$1 AND user_id=$2 AND kind='spirit'
+         AND created_at >= now() - interval '3 minutes')
+     ON CONFLICT (guild_id,source_id) DO NOTHING RETURNING id`,
+    [guildId,botId,"spirit:"+messageId]
+  );
+  return (result.rowCount??0)>0;
+}
 export async function trackGardenMessage(
   guildId: string,
   userId: string,
@@ -115,6 +134,7 @@ export function treeStage(points: number): { stage: number; name: string; nextAt
 }
 
 export async function getGardenOverview(guildId: string) {
+  const holiday = currentGardenHoliday();
   const [settings, totals, plantCount, ornaments] = await Promise.all([
     pool.query<{ enabled: boolean; tree_name: string }>(
       "SELECT enabled, tree_name FROM faye_garden_settings WHERE guild_id=$1", [guildId]),
@@ -129,8 +149,9 @@ export async function getGardenOverview(guildId: string) {
       "SELECT count(*)::text AS n FROM faye_garden_plants WHERE guild_id=$1 AND harvested_at IS NULL", [guildId]
     ),
     pool.query<{ n: string }>(
-      "SELECT count(*)::text AS n FROM faye_garden_ornaments WHERE guild_id=$1 AND season=$2",
-      [guildId, new Date().getUTCMonth() === 0 ? new Date().getUTCFullYear() - 1 : new Date().getUTCFullYear()]
+      "SELECT count(*)::text AS n FROM faye_garden_ornaments WHERE guild_id=$1 AND "+
+       "((holiday_key=$2 AND cycle=$3) OR ($2='christmas' AND holiday_key IS NULL AND season=$3))",
+      [guildId,holiday.id,holiday.cycle]
     )
   ]);
   const t = totals.rows[0];
@@ -145,6 +166,8 @@ export async function getGardenOverview(guildId: string) {
     contributors: Number(t?.gardeners ?? 0),
     livingPlants: Number(plantCount.rows[0]?.n ?? 0),
     ornaments: Number(ornaments.rows[0]?.n ?? 0),
+    holidayName: holiday.name,
+    holidayEmoji: holiday.emoji,
   };
 }
 
@@ -282,19 +305,22 @@ export async function harvestGardenPlant(guildId: string, userId: string, plantI
 
 export async function addGardenOrnament(guildId:string, userId:string, decoration:GardenOrnament) {
   if (!(await gardenEnabled(guildId))) return { status:"disabled" as const };
-  const month = new Date().getUTCMonth();
-  if (month !== 10 && month !== 11 && month !== 0) return { status:"out_of_season" as const };
-  const season = month === 0 ? new Date().getUTCFullYear() - 1 : new Date().getUTCFullYear();
+  const holiday = currentGardenHoliday();
+  if (!holiday.allowed.includes(decoration)) return {status:"out_of_season" as const, holiday:holiday.name};
+  // Each distinct holiday/year gets its own unique integer for the existing key.
+  const codes = ["winter","newyear","valentines","stpatricks","easter","earthday","memorial",
+    "spring","summer","pride","independence","laborday","autumn","halloween","thanksgiving","christmas"];
+  const season = holiday.cycle*100 + codes.indexOf(holiday.id)+1;
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const result = await client.query<{id:string}>(
-      `INSERT INTO faye_garden_ornaments (guild_id,user_id,decoration,season)
-       SELECT $1,$2,$3,$4 WHERE NOT EXISTS (
+      `INSERT INTO faye_garden_ornaments (guild_id,user_id,decoration,season,holiday_key,cycle)
+       SELECT $1,$2,$3,$4,$5,$6 WHERE NOT EXISTS (
          SELECT 1 FROM faye_garden_ornaments WHERE guild_id=$1 AND user_id=$2
          AND created_at >= ${LOCAL_DAY_SQL})
        ON CONFLICT DO NOTHING RETURNING id`,
-      [guildId,userId,decoration,season]
+      [guildId,userId,decoration,season,holiday.id,holiday.cycle]
     );
     if (!result.rows.length) {await client.query("ROLLBACK");return {status:"limit_or_duplicate" as const};}
     await client.query(
@@ -302,7 +328,7 @@ export async function addGardenOrnament(guildId:string, userId:string, decoratio
       [guildId,userId,"ornament:"+result.rows[0].id]
     );
     await client.query("COMMIT");
-    return {status:"added" as const};
+    return {status:"added" as const, holiday:holiday.name};
   } catch(e) {await client.query("ROLLBACK");throw e;}
   finally {client.release();}
 }
