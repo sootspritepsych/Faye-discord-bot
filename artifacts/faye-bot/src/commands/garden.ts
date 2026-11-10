@@ -8,6 +8,8 @@ import {
   setGardenEnabled, waterGardenPlant,
   type GardenOrnament, type GardenPeriod, type GardenRanking, type GardenSpecies,
 } from "../lib/gardenService";
+import { currentGardenHoliday, decorationEmoji } from "../lib/gardenSeasons";
+import { renderGardenView } from "../lib/gardenView";
 
 const plants: {name:GardenSpecies; emoji:string}[] = [
   {name:"sunflower",emoji:"🌻"}, {name:"tulip",emoji:"🌷"},
@@ -15,17 +17,13 @@ const plants: {name:GardenSpecies; emoji:string}[] = [
   {name:"tomato",emoji:"🍅"}, {name:"carrot",emoji:"🥕"},
   {name:"pumpkin",emoji:"🎃"}, {name:"fern",emoji:"🌿"},
 ];
-const ornaments: {name:GardenOrnament;emoji:string}[] = [
-  {name:"star",emoji:"⭐"}, {name:"red_bauble",emoji:"🔴"},
-  {name:"gold_bauble",emoji:"🟡"}, {name:"snowflake",emoji:"❄️"},
-  {name:"ribbon",emoji:"🎀"}, {name:"lights",emoji:"✨"},
-];
+const ornaments: {name:GardenOrnament;emoji:string}[] = Object.entries(decorationEmoji).map(([name,emoji])=>({name:name as GardenOrnament,emoji}));
 const plantEmoji = (name:string) => plants.find(x=>x.name===name)?.emoji ?? "🌱";
 
 export const data = new SlashCommandBuilder()
   .setName("garden")
   .setDescription("Grow the shared Garden of Harmony tree, plants and holiday decorations")
-  .addSubcommand(s=>s.setName("view").setDescription("View the whole server's shared garden"))
+  .addSubcommand(s=>s.setName("view").setDescription("Show a live picture of the tree and garden to everyone"))
   .addSubcommand(s=>s.setName("leaderboard").setDescription("See live Top Gardeners, chatters or emoji reactors")
     .addStringOption(o=>o.setName("period").setDescription("Choose a time window")
       .setRequired(true).addChoices(
@@ -45,7 +43,7 @@ export const data = new SlashCommandBuilder()
     .addIntegerOption(o=>o.setName("plant_id").setDescription("Plant ID from /garden plants").setRequired(true).setMinValue(1)))
   .addSubcommand(s=>s.setName("harvest").setDescription("Harvest your mature plant after three waterings")
     .addIntegerOption(o=>o.setName("plant_id").setDescription("Your mature plant ID").setRequired(true).setMinValue(1)))
-  .addSubcommand(s=>s.setName("decorate").setDescription("Hang a Christmas decoration on the community tree")
+  .addSubcommand(s=>s.setName("decorate").setDescription("Add a decoration for the current holiday or season")
     .addStringOption(o=>o.setName("ornament").setDescription("Choose your ornament").setRequired(true)
       .addChoices(...ornaments.map(p=>({name:p.emoji+" "+p.name.replace(/_/g," "),value:p.name})))))
   .addSubcommand(s=>s.setName("stats").setDescription("Your garden contribution, separate from chat XP")
@@ -104,10 +102,10 @@ function gardenUpdate(title: string, description: string, points: number) {
 }
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-  await interaction.deferReply({ephemeral:true});
+  const sub=interaction.options.getSubcommand();
+  await interaction.deferReply({ephemeral:sub!=="view"});
   const guildId=interaction.guildId;
   if (!guildId) {await interaction.editReply("The community garden lives inside the server. 🌳");return;}
-  const sub=interaction.options.getSubcommand();
   if (sub==="setchannel") {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
       await interaction.editReply("Only staff with **Manage Server** permission can choose the update channel.");
@@ -141,26 +139,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
   if (sub==="view") {
-    const [g,day,week,month]=await Promise.all([
-      getGardenOverview(guildId),
-      gardenLeaderboard(guildId,"day","all",1),
-      gardenLeaderboard(guildId,"week","all",1),
-      gardenLeaderboard(guildId,"month","all",1),
-    ]);
-    const progress=g.nextAt===null ? "The tree has reached its legendary stage!"
-      : (g.nextAt-g.points)+" growth points until the next stage ("+g.nextAt+" total).";
-    const embed=new EmbedBuilder()
-      .setTitle("🌳 "+g.treeName+" • "+g.name)
-      .setColor(0x6da985)
-      .setDescription("**"+g.points+" total growth points**\n"+progress+"\n"+
-        "🌼 **"+g.livingPlants+"** living plants • 🎄 **"+g.ornaments+"** seasonal ornaments\n"+
-        "🌿 **"+g.contributors+"** contributors • 💬 "+g.chatActions+" credited chats • 💚 "+g.reactions+" credited reactions")
-      .addFields(
-        {name:"🏆 Top Gardener Today",value:topLine(day),inline:true},
-        {name:"📅 Top Gardener This Week",value:topLine(week),inline:true},
-        {name:"🌙 Top Gardener This Month",value:topLine(month),inline:true}
-      ).setFooter({text:"Rankings reset daily, weekly and monthly • America/Chicago • No XP/casino changes"});
-    await interaction.editReply({embeds:[embed]});return;
+    await interaction.editReply(await renderGardenView(guildId));
+    return;
   }
   if (sub==="leaderboard") {
     const period=interaction.options.getString("period",true) as GardenPeriod;
@@ -243,13 +223,13 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     const r=await addGardenOrnament(guildId,interaction.user.id,ornament);
     const emoji=ornaments.find(o=>o.name===ornament)?.emoji??"🎄";
     await interaction.editReply(r.status==="added"
-      ?emoji+" Your **"+ornament.replace(/_/g," ")+"** now decorates the server's Harmony Tree!"
-      :r.status==="out_of_season"?"🎄 Holiday decorating is available November–January."
+      ?emoji+" Your **"+ornament.replace(/_/g," ")+"** now decorates the "+r.holiday+"!"
+      :r.status==="out_of_season"?"🎊 That decoration does not fit the current "+currentGardenHoliday().name+". Try: "+currentGardenHoliday().allowed.map(d=>decorationEmoji[d]+" "+d.replace(/_/g," ")).join(", ")
       :"You've already decorated today, or you've placed this decoration this season.");
     if (r.status==="added") {
       await announceGarden(interaction, gardenUpdate(
-        "🎄 The Harmony Tree has a new decoration!",
-        "<@"+interaction.user.id+"> hung "+emoji+" **"+ornament.replace(/_/g," ")+"** on our holiday tree!\n"+
+        currentGardenHoliday().emoji+" A new seasonal decoration!",
+        "<@"+interaction.user.id+"> hung "+emoji+" **"+ornament.replace(/_/g," ")+"** in the "+r.holiday+"!\n"+
         "✨ Look for it on the live website.",
         3
       ));
