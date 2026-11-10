@@ -101,7 +101,7 @@ test('both weekly guardians and member submissions use the same stored anonymous
     assert.deepEqual(submissions.map(r => r.userId).sort(), ['faye-bot', 'lilith-bot']);
     for (let i = 0; i < sent.length; i++) {
       assert.match(sent[i].embeds[0].data.title, new RegExp('Confession #' + submissions[i].id));
-      assert.equal(sent[i].embeds[0].data.footer.text, 'Anonymous to members · Admins can review · Garden of Harmony 🍃');
+      assert.equal(sent[i].embeds[0].data.footer.text, 'Anonymous · Garden of Harmony 🍃');
       assert.equal(sent[i].components[0].components[0].data.custom_id, 'confess-reply_' + submissions[i].id);
       assert.deepEqual(sent[i].allowedMentions, { parse: [] });
     }
@@ -119,7 +119,7 @@ test('both weekly guardians and member submissions use the same stored anonymous
     assert.equal(submissions[2].userId, 'member');
     assert.equal(submissions[2].content, 'My secret');
     assert.equal(submissions[2].category, 'Funny');
-    assert.equal(sent[2].embeds[0].data.footer.text, 'Anonymous to members · Admins can review · Garden of Harmony 🍃');
+    assert.equal(sent[2].embeds[0].data.footer.text, 'Anonymous · Garden of Harmony 🍃');
     embedLinks = false;
     const { publishConfession } = require('../src/lib/confessionService.ts');
     await publishConfession({ channel, userId: 'faye-bot', username: 'Faye', content: 'A text confession' });
