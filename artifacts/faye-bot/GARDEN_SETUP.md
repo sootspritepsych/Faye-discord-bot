@@ -90,3 +90,12 @@ On the dashboard, poll the **server-side** `/api/garden` route every 15–30 sec
 - Existing tree stages are baselined on first scheduler run. Future stages are stored in `faye_garden_milestone_state`; the migration creates this table before Faye starts.
 - The public garden website's first-visit guide explains the new commands and links them with the original interactive seed library.
 - Pet Pals are intentionally outside this launch.
+
+
+## Daily QOTD and POTD garden growth bonuses
+
+- **QOTD response:** +5 total growth points for the first qualifying direct Discord reply to today's official Faye QOTD post (the post containing the @QOTD mention). The message must have at least two readable non-link characters, or an attachment. Since it is a special credited answer, the normal +1 chat point is not added to that same message. Other eligible chat replies can earn ordinary chat points.
+- **POTD vote:** +3 growth points for the first vote cast in today's official native Discord Daily Poll. Vote add events are tracked via the Discord gateway and the actual poll message ID; changing or removing/recasting a vote does not earn more points.
+- Both rewards are **one per member per daily post**, across restarts, with guild scope and Central Time daily verification. Only official posts saved in `qotd_daily_posts` and `faye_daily_poll_posts` qualify. These actions add garden growth only, not coins, rapport or chat XP.
+- The database migration expands `faye_garden_activity.kind` to include `qotd` and `poll`. Public growth leaderboards and end-of-day awards include both; QOTD answers also count in eligible chat totals.
+- Faye requires the **Guild Message Polls** gateway intent to receive native poll vote events. The listener uses uncached vote packets so it still works after the bot restarts.
