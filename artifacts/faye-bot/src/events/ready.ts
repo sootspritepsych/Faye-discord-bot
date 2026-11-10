@@ -1,3 +1,4 @@
+import { startCommunityPrompts } from "../lib/communityPrompts";
 import { startGuardianConfessions } from "../lib/guardianConfessionScheduler";
 import { startJamRoomSongs } from "../lib/jamRoomSongs";
 import { Client, Events } from "discord.js";
@@ -23,6 +24,7 @@ export default function registerReadyEvent(client: Client): void {
       .catch(error => console.error("Garden social storage initialization failed:", error));
 
     startFayeMoodRotation(client);
+    startCommunityPrompts(client);
     startGuardianConfessions(client);
     startJamRoomSongs(client);
     startQotdScheduler(client);
