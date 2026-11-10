@@ -114,13 +114,13 @@ export function startGuardianConfessions(client: Client): void {
   void (async () => {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS ${table} (
-        guild_id T NOT NULL,
+        guild_id TEXT NOT NULL,
         week_start TIMESTAMPTZ NOT NULL,
         scheduled_at TIMESTAMPTZ NOT NULL,
-        content T NOT NULL,
-        status T NOT NULL DEFAULT 'pending',
+        content TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
         attempted_at TIMESTAMPTZ,
-        message_id T,
+        message_id TEXT,
         PRIMARY KEY (guild_id, week_start)
       );
     `);

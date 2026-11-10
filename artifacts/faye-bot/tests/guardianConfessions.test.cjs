@@ -25,6 +25,7 @@ test('persisted plans survive concurrent ticks; only one due post and no downtim
   process.env.DISCORD_GUILD_ID = 'home';
   const rows = [];
   const sent = [];
+  let initialized = false;
   const dialect = new PgDialect();
   const databasePath = require.resolve('../src/lib/database.ts');
   const previousModule = require.cache[databasePath];
@@ -32,6 +33,13 @@ test('persisted plans survive concurrent ticks; only one due post and no downtim
     execute: async sql => {
       const query = dialect.sqlToQuery(sql);
       const p = query.params;
+      if (query.sql.includes('CREATE TABLE')) {
+        for (const field of ['guild_id', 'content', 'status', 'message_id']) {
+          assert.match(query.sql, new RegExp(field + ' TEXT'));
+        }
+        initialized = true;
+        return { rows: [] };
+      }
       if (query.sql.includes('SELECT confessions_channel_id')) return { rows: [{ confessions_channel_id: 'confessions' }] };
       if (query.sql.includes('SELECT week_start')) return { rows: rows.filter(r => r.guild === p[0] && +r.week === +p[1]) };
       if (query.sql.includes('SELECT content')) return { rows: [...rows].reverse().slice(0, p[1]) };
@@ -57,7 +65,10 @@ test('persisted plans survive concurrent ticks; only one due post and no downtim
     send: async payload => { sent.push(payload); return { id: 'message' }; } };
   const client = { guilds: { fetch: async () => ({ members: { me: {} } }) }, channels: { fetch: async () => channel } };
   try {
-    const { runGuardianConfessionTick } = require('../src/lib/guardianConfessionScheduler.ts');
+    const { runGuardianConfessionTick, startGuardianConfessions } = require('../src/lib/guardianConfessionScheduler.ts');
+    startGuardianConfessions(client);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(initialized);
     await Promise.all([runGuardianConfessionTick(client), runGuardianConfessionTick(client)]);
     assert.equal(rows.length, 2);
     assert.equal(sent.length, 0);
