@@ -6,7 +6,7 @@ import {
   TextChannel,
   ChannelType,
 } from "discord.js";
-import { db, confessions, suggestions, guildConfig } from "../lib/database";
+import { db, confessions, confessionReplies, suggestions, guildConfig } from "../lib/database";
 import { eq, desc, and } from "drizzle-orm";
 
 export const data = new SlashCommandBuilder()
@@ -19,6 +19,24 @@ export const data = new SlashCommandBuilder()
       .setDescription("View who submitted each confession")
       .addIntegerOption((opt) =>
         opt.setName("limit").setDescription("How many to show (default 10, max 25)").setRequired(false)
+      )
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("replies")
+      .setDescription("Privately view the authors of anonymous confession replies")
+      .addIntegerOption((opt) =>
+        opt.setName("confession")
+          .setDescription("Filter to a confession number (optional)")
+          .setMinValue(1)
+          .setRequired(false)
+      )
+      .addIntegerOption((opt) =>
+        opt.setName("limit")
+          .setDescription("How many replies (default 10, max 25)")
+          .setMinValue(1)
+          .setMaxValue(25)
+          .setRequired(false)
       )
   )
   .addSubcommand((sub) =>
@@ -99,6 +117,48 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setFooter({ text: "Use /modlog delete-confession <id> to remove · Garden of Harmony" });
 
     await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // ── VIEW ANONYMOUS REPLY AUTHORS (PRIVATE TO ADMINS) ──────────────────
+  if (sub === "replies") {
+    const confessionId = interaction.options.getInteger("confession");
+    const limit = Math.max(1, Math.min(interaction.options.getInteger("limit") ?? 10, 25));
+    const filter = confessionId === null
+      ? eq(confessionReplies.guildId, interaction.guildId)
+      : and(
+          eq(confessionReplies.guildId, interaction.guildId),
+          eq(confessionReplies.confessionId, confessionId)
+        );
+    const rows = await db
+      .select()
+      .from(confessionReplies)
+      .where(filter)
+      .orderBy(desc(confessionReplies.createdAt), desc(confessionReplies.id))
+      .limit(limit);
+
+    if (rows.length === 0) {
+      await interaction.editReply(confessionId === null
+        ? "No anonymous confession replies logged yet."
+        : `No replies found for Confession #${confessionId}.`);
+      return;
+    }
+
+    const description = rows.map((r) => {
+      const when = r.createdAt ? `<t:${Math.floor(r.createdAt.getTime() / 1000)}:R>` : "";
+      const preview = r.content.replace(/[\r\n]+/g, " ").slice(0, 85);
+      return `**Reply #${r.id} · Confession #${r.confessionId}** ${when}\n<@${r.userId}> (${r.username})\n> ${preview}${r.content.length > 85 ? "…" : ""}`;
+    }).join("\n\n");
+
+    const embed = new EmbedBuilder()
+      .setColor(0xa5d6a7)
+      .setTitle(confessionId === null
+        ? `🔒 Anonymous Reply Log (last ${rows.length})`
+        : `🔒 Replies to Confession #${confessionId} (${rows.length})`)
+      .setDescription(description.slice(0, 4000))
+      .setFooter({ text: "Visible only to server administrators · Garden of Harmony" });
+
+    await interaction.editReply({ embeds: [embed], allowedMentions: { parse: [] } });
     return;
   }
 
