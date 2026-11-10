@@ -10,6 +10,7 @@ import { startGardenMilestones } from "../lib/gardenMilestoneScheduler";
 import { startPollScheduler } from "../lib/pollScheduler";
 import { initializePotdRoles } from "../lib/potdRoleService";
 import { backfillPotdForQotdMembers } from "../lib/potdBackfill";
+import { startFoodScheduler } from "../lib/foodScheduler";
 
 export default function registerReadyEvent(client: Client): void {
   client.once(Events.ClientReady, async (readyClient) => {
@@ -20,6 +21,7 @@ export default function registerReadyEvent(client: Client): void {
     startQotdScheduler(client);
     startGardenAwards(client);
     startGardenMilestones(client);
+    void startFoodScheduler(client).catch(error => console.error("📷 Food scheduler initialization failed", error));
 
     try {
       await initializePotdRoles(client);
