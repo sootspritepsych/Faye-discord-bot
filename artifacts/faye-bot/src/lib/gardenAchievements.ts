@@ -22,7 +22,7 @@ const ACTIVITY_LABELS: Record<Exclude<GardenStat, "points">, string> = {
 export async function getGardenerProgress(guildId: string, userId: string) {
   const query = [
     "SELECT COALESCE(SUM(points),0)::text AS points,",
-    " COUNT(*) FILTER (WHERE kind='chat')::text AS chats,",
+    " COUNT(*) FILTER (WHERE kind IN ('chat','qotd'))::text AS chats,",
     " COUNT(*) FILTER (WHERE kind='reaction')::text AS reactions,",
     " COUNT(*) FILTER (WHERE kind='plant')::text AS plants,",
     " COUNT(*) FILTER (WHERE kind='water')::text AS waterings,",
