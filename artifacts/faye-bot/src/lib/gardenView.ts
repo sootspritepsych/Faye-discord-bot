@@ -3,6 +3,7 @@ import {
   type ButtonInteraction,
 } from "discord.js";
 import { currentGardenHoliday } from "./gardenSeasons";
+import { gardenGuideEmbed } from "./gardenGuide";
 import { gardenEnabled, gardenLeaderboard, gardenPlants, getGardenOverview } from "./gardenService";
 
 export type GardenPanel = "tree" | "beds";
@@ -54,12 +55,18 @@ export async function renderGardenView(guildId:string,panel:GardenPanel="tree") 
     new ButtonBuilder().setCustomId("garden_panel:refresh:"+panel).setLabel("Refresh").setEmoji("🔄")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setLabel("Explore Website").setEmoji("🌐")
-      .setStyle(ButtonStyle.Link).setURL(SITE_URL)
+      .setStyle(ButtonStyle.Link).setURL(SITE_URL),
+    new ButtonBuilder().setCustomId("garden_panel:guide").setLabel("How to Play").setEmoji("🌱")
+      .setStyle(ButtonStyle.Secondary)
   );
   return {embeds:[embed],components:[buttons]};
 }
 
 export async function handleGardenViewButton(interaction:ButtonInteraction):Promise<void> {
+  if (interaction.customId === "garden_panel:guide") {
+    await interaction.reply({embeds:[gardenGuideEmbed()],ephemeral:true});
+    return;
+  }
   const guildId=interaction.guildId;
   if(!guildId || !(await gardenEnabled(guildId))) {
     await interaction.reply({content:"🌱 This garden isn't active yet.",ephemeral:true});
