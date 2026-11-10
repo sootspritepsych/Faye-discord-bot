@@ -1,8 +1,9 @@
 import {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder,
-  type ButtonInteraction,
+  type ButtonInteraction, type Guild,
 } from "discord.js";
 import { currentGardenHoliday } from "./gardenSeasons";
+import { plantEmoji, plantLabel } from "./gardenPlantsCatalog";
 import { gardenGuideEmbed } from "./gardenGuide";
 import { gardenEnabled, gardenLeaderboard, gardenPlants, getGardenOverview } from "./gardenService";
 
@@ -10,7 +11,7 @@ export type GardenPanel = "tree" | "beds";
 const IMAGE_URL = "https://garden-of-harmony-migration-production.up.railway.app/api/garden-scene";
 const SITE_URL = "https://gardenofharmony.up.railway.app/garden";
 
-export async function renderGardenView(guildId:string,panel:GardenPanel="tree") {
+export async function renderGardenView(guildId:string,panel:GardenPanel="tree",guild?:Guild|null) {
   const [garden,day,week,month,plants]=await Promise.all([
     getGardenOverview(guildId),
     gardenLeaderboard(guildId,"day","all",1),
@@ -37,7 +38,7 @@ export async function renderGardenView(guildId:string,panel:GardenPanel="tree") 
     .setTimestamp();
   if(panel==="beds") {
     embed.addFields({name:"🌼 Latest garden plots",value:plants.length ?
-      plants.slice(0,8).map(p=>"**#"+p.id+"** "+p.species+
+      plants.slice(0,8).map(p=>plantEmoji(p.species,guild)+" **#"+p.id+"** "+plantLabel(p.species)+
         " • "+p.water_count+"/3 💧 • <@"+p.owner_id+">").join("\n") :
       "The garden is ready for its first seed! Try /garden plant."});
   } else {
@@ -76,5 +77,5 @@ export async function handleGardenViewButton(interaction:ButtonInteraction):Prom
   const panel:GardenPanel=mode==="beds"?"beds":
     mode==="refresh" && interaction.customId.endsWith(":beds")?"beds":"tree";
   await interaction.deferUpdate();
-  await interaction.editReply(await renderGardenView(guildId,panel));
+  await interaction.editReply(await renderGardenView(guildId,panel,interaction.guild));
 }
