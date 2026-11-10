@@ -335,6 +335,59 @@ export async function handleGardenWaterInteraction(
   await interaction.reply({ content: "That watering menu expired. Run `/garden water` again.", ephemeral: true });
 }
 
+/** Keep the seed menu private to the member who opened it. */
+export async function handleGardenPlantInteraction(interaction: StringSelectMenuInteraction): Promise<void> {
+  const [prefix, action, actorId] = interaction.customId.split(":");
+  if (prefix !== "garden_plant" || action !== "pick" || !actorId || interaction.user.id !== actorId) {
+    await interaction.reply({ content: "🌱 This seed picker belongs to another gardener. Run `/garden plant` to open your own.", ephemeral: true });
+    return;
+  }
+  if (!interaction.guildId || !(await gardenEnabled(interaction.guildId))) {
+    await interaction.update({ content: "🌱 The garden is not active right now.", components: [] });
+    return;
+  }
+  const species = interaction.values[0];
+  if (!plants.some(plant => plant.name === species)) {
+    await interaction.reply({ content: "That seed isn't available. Run `/garden plant` again.", ephemeral: true });
+    return;
+  }
+  await completePlant(interaction, interaction.guildId, species as GardenSpecies);
+}
+
+/** Paging and selecting harvests never expose an ID to the gardener. */
+export async function handleGardenHarvestInteraction(
+  interaction: ButtonInteraction | StringSelectMenuInteraction
+): Promise<void> {
+  const [prefix, action, actorId, pageText] = interaction.customId.split(":");
+  if (prefix !== "garden_harvest" || !actorId || !/^\\d+$/.test(actorId) || interaction.user.id !== actorId) {
+    await interaction.reply({ content: "🧺 This harvest menu belongs to another gardener. Run `/garden harvest` to open yours.", ephemeral: true });
+    return;
+  }
+  if (!interaction.guildId || !(await gardenEnabled(interaction.guildId))) {
+    await interaction.update({ content: "🌱 The garden is not active right now.", components: [] });
+    return;
+  }
+  if (action === "page" && interaction.isButton()) {
+    const page = Number(pageText);
+    if (!Number.isSafeInteger(page) || page < 0 || page > 10000) {
+      await interaction.reply({ content: "That page isn't available.", ephemeral: true });
+      return;
+    }
+    await showHarvestPicker(interaction, interaction.guildId, page);
+    return;
+  }
+  if (action === "pick" && interaction.isStringSelectMenu()) {
+    const id = Number(interaction.values[0]);
+    if (!Number.isSafeInteger(id) || id < 1) {
+      await interaction.reply({ content: "That plant isn't available. Run `/garden harvest` again.", ephemeral: true });
+      return;
+    }
+    await completeHarvest(interaction, interaction.guildId, id);
+    return;
+  }
+  await interaction.reply({ content: "That harvest menu expired. Run `/garden harvest` again.", ephemeral: true });
+}
+
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   const sub=interaction.options.getSubcommand();
   await interaction.deferReply({ephemeral:sub!=="view" && sub!=="profile"});
