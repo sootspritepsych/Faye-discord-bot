@@ -1794,7 +1794,8 @@ export default function registerMessageCreateEvent(
             message.author.id,
             message.id,
             message.content,
-            message.attachments.size > 0
+            message.attachments.size > 0,
+            message.reference?.messageId ?? undefined
           ).catch(error => console.error("🌳 Garden chat tracking error:", error));
         }
 
