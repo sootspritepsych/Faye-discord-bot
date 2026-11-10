@@ -22,7 +22,8 @@ async function resolveCommunityChannel(client: Client, plan: PromptPlan): Promis
   } else {
     const channels = await guild.channels.fetch();
     const matches = channels.filter(candidate => candidate?.type === ChannelType.GuildText &&
-      normalizedCommunityName(candidate.name) === plan.name);
+      (normalizedCommunityName(candidate.name) === plan.name ||
+        (plan.topic === "money" && normalizedCommunityName(candidate.name) === "robiosinvestmentcorner")));
     if (matches.size !== 1) throw new Error(`Set ${plan.env}: expected one unique ${plan.name} channel`);
     channel = matches.first();
   }
@@ -76,6 +77,25 @@ export async function runCommunityPromptTick(client: Client, now = new Date()): 
   }
 }
 
+export async function ensureLilithCommunityAccess(client: Client): Promise<void> {
+    // Faye administers the home Garden. Grant only the three permissions Lilith needs
+    // in the two community channels the owner explicitly enabled for her.
+    const sisterId = process.env.LILITH_BOT_ID?.trim();
+    if (sisterId) for (const plan of COMMUNITY_PROMPTS.filter(plan => plan.guardian === "lilith" || plan.guardian === "alternate")) {
+      try {
+        const channel = await resolveCommunityChannel(client, plan);
+        const sister = await channel.guild.members.fetch(sisterId);
+        const needed = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory];
+        if (!channel.permissionsFor(sister)?.has(needed)) {
+          await channel.permissionOverwrites.edit(sisterId, {
+            ViewChannel: true, SendMessages: true, ReadMessageHistory: true,
+          }, { reason: "Enable the owner's weekly guardian conversations and replies" });
+        }
+        console.log(`[faye community] Lilith access ready: #${channel.name} (${channel.id})`);
+      } catch (error) { console.error("[faye community] Lilith channel access:", error); }
+    }
+}
+
 export function startCommunityPrompts(client: Client): void {
   if (started || process.env.COMMUNITY_PROMPTS_ENABLED === "false") return;
   started = true;
@@ -86,6 +106,7 @@ export function startCommunityPrompts(client: Client): void {
       message_id TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (guild_id, topic, local_date)
     )`);
+    await ensureLilithCommunityAccess(client);
     for (const plan of COMMUNITY_PROMPTS.filter(plan => plan.guardian === GUARDIAN || plan.guardian === "alternate")) {
       try {
         const channel = await resolveCommunityChannel(client, plan);

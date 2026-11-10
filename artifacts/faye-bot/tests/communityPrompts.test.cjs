@@ -74,3 +74,28 @@ test('concurrent ticks reserve once; invalid channels and missed slots never pos
   await runCommunityPromptTick(client, next);
   assert.equal(sent.length, 1, 'ambiguous send failures are not retried');
 });
+
+test('only Lilith receives the needed permissions in the two approved channels', async () => {
+  process.env.DISCORD_GUILD_ID = 'home';
+  process.env.LILITH_BOT_ID = 'sister';
+  const { ensureLilithCommunityAccess } = require('../src/lib/communityPrompts.ts');
+  const edits = [];
+  const sister = { id: 'sister' };
+  const guild = { members: { me: { id: 'faye' }, fetch: async id => {
+    assert.equal(id, 'sister'); return sister;
+  } } };
+  const channels = new Collection();
+  for (const name of ['mental-health', 'exercise-and-diet', 'robios-investment-corner', 'growth-and-development']) {
+    const channel = { id: name, name, guildId: 'home', guild, type: ChannelType.GuildText, nsfw: false,
+      permissionsFor: member => ({ has: () => member !== sister }),
+      permissionOverwrites: { edit: async (id, permissions) => { edits.push({ name, id, permissions }); } } };
+    channels.set(name, channel);
+  }
+  guild.channels = { fetch: async () => channels };
+  await ensureLilithCommunityAccess({ guilds: { fetch: async () => guild } });
+  assert.deepEqual(edits.map(edit => edit.name), ['exercise-and-diet', 'robios-investment-corner']);
+  for (const edit of edits) {
+    assert.equal(edit.id, 'sister');
+    assert.deepEqual(edit.permissions, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true });
+  }
+});
