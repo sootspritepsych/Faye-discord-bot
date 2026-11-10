@@ -47,7 +47,7 @@ export async function postDueGardenAwards(client:Client,now=new Date()):Promise<
         const leaders=await pool.query<{user_id:string;score:string}>(
           "SELECT user_id,SUM(points)::text AS score FROM faye_garden_activity " +
           "WHERE guild_id=$1 AND created_at >= $2 AND created_at < $3 " +
-          "AND kind IN ('chat','reaction','plant','water','harvest','ornament') " +
+          "AND kind IN ('chat','reaction','plant','water','harvest','ornament','qotd','poll') " +
           "GROUP BY user_id ORDER BY SUM(points) DESC,user_id ASC LIMIT 1",
           [g.guild_id,start,now]
         );
