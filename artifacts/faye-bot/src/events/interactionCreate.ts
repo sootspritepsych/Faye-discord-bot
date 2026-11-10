@@ -5,6 +5,7 @@ import {
   ChatInputCommandInteraction,
 } from "discord.js";
 import { commands } from "../commands";
+import { handleSocialInteraction } from "../commands/gardenSocial";
 import { handleGardenViewButton } from "../lib/gardenView";
 import { handleGardenWaterInteraction, handleGardenPlantInteraction, handleGardenHarvestInteraction } from "../commands/garden";
 import {
@@ -17,6 +18,8 @@ import { db, wisdomQuotes } from "../lib/database";
 export default function registerInteractionCreateEvent(client: Client) {
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     try {
+      if (await handleSocialInteraction(interaction)) return;
+
       // Slash Commands
       if (interaction.isChatInputCommand()) {
         const command = commands.get(interaction.commandName);

@@ -22,6 +22,7 @@ import * as unavaatu from "./unavaatu";
 import { complimentCommand } from "./compliment";
 import * as ticket from "./ticket";
 import * as addwquotes from "./addwquotes";
+import { socialCommands } from "./gardenSocial";
 
 export interface Command {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +53,7 @@ const commandList: Command[] = [
   naturefact,
   unavaatu,
   complimentCommand,
+  ...socialCommands,
   ticket,
 ];
 

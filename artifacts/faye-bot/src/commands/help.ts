@@ -27,6 +27,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         value: "`@Faye <message>` · `!f <message>` · `/faye <message>`",
       },
       {
+        name: "🌸 Play with the Guardians",
+        value: [
+          "`/compliment` · `/duality` · `/vibe` — brighten someone’s day",
+          "`/gift` — give a keepsake, or view your received collection",
+          "`/fortune` · `/ask-sisters` — hear from the sisters",
+          "`/explore` — three daily journeys and a keepsake bag",
+          "`/tea` — a tea chat with reply buttons",
+          "`/wish` — leave a public wish and encourage others",
+          "`/roast` — playful teasing from Lilith (choose Lilith’s command)",
+        ].join("\n"),
+      },
+      {
         name: "🌿 Mod Commands",
         value: [
           "`/warn` `/warnings` — issue and manage member warnings",

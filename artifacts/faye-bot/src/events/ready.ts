@@ -1,5 +1,6 @@
 import { startGuardianConfessions } from "../lib/guardianConfessionScheduler";
 import { Client, Events } from "discord.js";
+import { initSocialStore } from "../lib/gardenSocialStore";
 import { loadReminders } from "../lib/reminderScheduler";
 import { startWisdomScheduler } from "../lib/wisdomScheduler";
 import { startWelcomeJourneyScheduler } from "../lib/welcomeJourneyScheduler";
@@ -15,6 +16,10 @@ import { startFoodScheduler } from "../lib/foodScheduler";
 export default function registerReadyEvent(client: Client): void {
   client.once(Events.ClientReady, async (readyClient) => {
     console.log(`🌿 Faye is awake! Logged in as ${readyClient.user.tag}`);
+
+    void initSocialStore()
+      .then(() => console.log("🌸 Garden social commands and keepsake storage are ready."))
+      .catch(error => console.error("Garden social storage initialization failed:", error));
 
     startFayeMoodRotation(client);
     startGuardianConfessions(client);
