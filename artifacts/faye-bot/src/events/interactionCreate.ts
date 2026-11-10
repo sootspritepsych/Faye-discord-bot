@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { commands } from "../commands";
 import { handleGardenViewButton } from "../lib/gardenView";
+import { handleGardenWaterInteraction } from "../commands/garden";
 import {
   handleConfessionReplyButton,
   handleConfessionReplyModal,
@@ -22,6 +23,13 @@ export default function registerInteractionCreateEvent(client: Client) {
         if (!command) return;
 
         await command.execute(interaction as ChatInputCommandInteraction);
+        return;
+      }
+
+      // Watering selectors (ephemeral dropdown + paging buttons)
+      if ((interaction.isStringSelectMenu() || interaction.isButton()) &&
+          interaction.customId.startsWith("garden_water:")) {
+        await handleGardenWaterInteraction(interaction);
         return;
       }
 
