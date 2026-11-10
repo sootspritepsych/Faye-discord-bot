@@ -1,11 +1,11 @@
 # Weekly Guardian Confessions
 
-Each bot posts one signed, in-character confession per UTC Monday–Sunday week in the home server's confessions channel. Days and times are random and saved in Postgres; the scheduler checks once a minute. The first week's time is selected from the remaining week. The next week is planned ahead.
+Faye manages one weekly confession for herself and one for Lilith. Each character has a separate saved random posting time and a 26-line bank. The scheduler checks once per minute, plans the current and next UTC Monday–Sunday week, and skips expired weeks after downtime.
 
-The 26-line character-specific banks rotate without repeating any of the most recent 25 planned lines. Posts are clearly attributed to Faye or Lilith and do not ping members. Member confessions are not read or used as material.
+Both use `publishConfession`, the same submission service as `/confess submit`. Confessions receive IDs in `faye_confessions`, the normal Anonymous footer, and the existing Reply Anonymously button. `/confess reply` and the reply modal handle these just like member submissions. The private author fields identify Faye or Lilith; their names are not displayed in the public confession. No members are pinged and no member confessions are used as material.
 
-Faye uses her existing `/setup confessions-channel` setting. `CONFESSIONS_CHANNEL_ID` can explicitly select a channel for either bot. If neither is set, the bot accepts a single text channel named `confession` or `confessions` after removing emoji/punctuation. Ambiguous names or missing View Channel, Send Messages, or Embed Links permissions are logged and posting waits until configuration is fixed. Both bots restrict posts to their configured home server; Lilith also checks her license allowlist.
+Faye uses her configured confessions channel, with the existing environment/name fallback. Faye needs View Channel and Send Messages. Embed Links is optional: the service uses plain text with the same reply button if embeds are unavailable. `LILITH_BOT_ID` records Lilith's identity internally.
 
-Set `GUARDIAN_CONFESSIONS_ENABLED=false` and restart to disable. Saved schedules are retained. Each bot creates its own `*_guardian_confession_posts` table at startup. Startup logs include the next planned times and channel ID.
+Set `GUARDIAN_CONFESSIONS_ENABLED=false` on Faye and restart to disable both. Faye retains her existing `faye_guardian_confession_posts` schedules. Lilith's new schedules live in `faye_lilith_guardian_confession_posts` in Faye's database. Her former standalone scheduler is no longer started; its historical data is retained.
 
-Posting claims are atomic across replicas and restarts. Past weeks are skipped after downtime. An uncertain Discord send is not retried automatically, to avoid duplicate posts; a crash after claiming or a failed send can therefore skip that week's confession. Inspect the logs and stored status if a post is missing.
+Posting claims are atomic across replicas and restarts. An ambiguous send failure is not retried automatically, to prevent duplicate posts. A failed send or crash after claiming can skip that week's confession; inspect the logs and stored status if a post is missing.

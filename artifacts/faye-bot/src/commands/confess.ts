@@ -1,23 +1,13 @@
+import { publishConfession } from "../lib/confessionService";
 import {
   ChatInputCommandInteraction,
   SlashCommandBuilder,
   EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   TextChannel,
   ChannelType,
 } from "discord.js";
 import { db, confessions, confessionReplies, guildConfig } from "../lib/database";
 import { eq, and } from "drizzle-orm";
-
-const CATEGORY_EMOJIS: Record<string, string> = {
-  Funny: "😄",
-  Personal: "💚",
-  Gaming: "🎮",
-  Secret: "🌙",
-  Random: "🍃",
-};
 
 export const data = new SlashCommandBuilder()
   .setName("confess")
@@ -86,36 +76,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   if (sub === "submit") {
     const message = interaction.options.getString("message", true);
     const category = interaction.options.getString("category") ?? "Random";
-    const emoji = CATEGORY_EMOJIS[category] ?? "🍃";
-
-    // Insert first to get the ID
-    const [inserted] = await db
-      .insert(confessions)
-      .values({
-        guildId: interaction.guildId,
-        userId: interaction.user.id,
-        username: interaction.user.username,
-        content: message,
-        category,
-      })
-      .returning();
-
-    const embed = new EmbedBuilder()
-      .setColor(0xa5d6a7)
-      .setTitle(`${emoji} ${category} Confession #${inserted.id}`)
-      .setDescription(message)
-      .setFooter({ text: "Anonymous · Garden of Harmony 🍃" })
-      .setTimestamp();
-
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`confess-reply_${inserted.id}`)
-        .setLabel("💬 Reply Anonymously")
-        .setStyle(ButtonStyle.Secondary)
-    );
-
-    const sent = await (channel as TextChannel).send({ embeds: [embed], components: [row] });
-    await db.update(confessions).set({ messageId: sent.id }).where(eq(confessions.id, inserted.id));
+    await publishConfession({
+      channel, userId: interaction.user.id, username: interaction.user.username,
+      content: message, category,
+    });
 
     await interaction.editReply("Your confession has been whispered into the garden. 🍃 No one will know it was you.");
     return;
@@ -159,3 +123,4 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.editReply(`Your reply to Confession #${confessionId} has been posted anonymously. 🌿`);
   }
 }
+

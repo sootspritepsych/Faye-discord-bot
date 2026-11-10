@@ -1,12 +1,17 @@
-import { ChannelType, Client, EmbedBuilder, PermissionFlagsBits, type TextChannel } from "discord.js";
+import { publishConfession } from "./confessionService";
+import { LILITH_CONFESSION_LINES } from "./lilithConfessionLines";
+import { ChannelType, Client, PermissionFlagsBits, type TextChannel } from "discord.js";
 import { sql } from "drizzle-orm";
 import { db } from "./database";
 import { CONFESSION_LINES } from "./guardianConfessionLines";
 import { chooseConfession, confessionWeek, randomConfessionTime, WEEK_MS } from "./guardianConfessionPlan";
 
 
-const BOT = "faye";
-const table = sql.raw("faye_guardian_confession_posts");
+type Guardian = "faye" | "lilith";
+const TABLES: Record<Guardian, string> = {
+  faye: "faye_guardian_confession_posts",
+  lilith: "faye_lilith_guardian_confession_posts",
+};
 let started = false;
 
 async function resolveChannel(client: Client): Promise<TextChannel | null> {
@@ -33,12 +38,17 @@ async function resolveChannel(client: Client): Promise<TextChannel | null> {
   }
   const me = guild.members.me ?? await guild.members.fetchMe();
   if (!channel.permissionsFor(me)?.has([
-    PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks,
-  ])) throw new Error("Missing View Channel, Send Messages, or Embed Links in confessions");
+    PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages,
+  ])) throw new Error("Missing View Channel or Send Messages in confessions");
   return channel;
 }
 
-export async function runGuardianConfessionTick(client: Client): Promise<void> {
+export async function runGuardianConfessionTick(client: Client, guardian: Guardian = "faye"): Promise<void> {
+  const BOT = guardian;
+  const table = sql.raw(TABLES[guardian]);
+  const lines = guardian === "faye" ? CONFESSION_LINES : LILITH_CONFESSION_LINES;
+  const userId = guardian === "faye" ? client.user?.id : process.env.LILITH_BOT_ID?.trim();
+  if (!userId) throw new Error(`Missing ${guardian} bot ID for confession attribution`);
   const channel = await resolveChannel(client);
   if (!channel) return;
   const now = new Date();
@@ -52,9 +62,9 @@ export async function runGuardianConfessionTick(client: Client): Promise<void> {
     if (existing.rows.length) continue;
     const recent = await db.execute(sql`
       SELECT content FROM ${table} WHERE guild_id = ${channel.guildId}
-      ORDER BY week_start DESC LIMIT ${CONFESSION_LINES.length - 1};
+      ORDER BY week_start DESC LIMIT ${lines.length - 1};
     `);
-    const content = chooseConfession(CONFESSION_LINES, recent.rows.map(row => String(row.content)));
+    const content = chooseConfession(lines, recent.rows.map(row => String(row.content)));
     const due = randomConfessionTime(start, now);
     const inserted = await db.execute(sql`
       INSERT INTO ${table} (guild_id, week_start, scheduled_at, content)
@@ -74,16 +84,11 @@ export async function runGuardianConfessionTick(client: Client): Promise<void> {
   for (const row of claimed.rows) {
     let messageId: string;
     try {
-      const message = await channel.send({
-        embeds: [new EmbedBuilder()
-          .setColor(0xa5d6a7)
-          .setTitle("🌸 Faye has a confession…")
-          .setDescription(String(row.content))
-          .setFooter({ text: "— Faye · A Guardian's Confession · Garden of Harmony" })
-          .setTimestamp()],
-        allowedMentions: { parse: [] },
+      const posted = await publishConfession({
+        channel, userId, username: guardian === "faye" ? "Faye" : "Lilith",
+        content: String(row.content), category: "Random",
       });
-      messageId = message.id;
+      messageId = posted.messageId;
     } catch (error) {
       // Do not automatically retry an ambiguous Discord failure: it may have delivered.
       await db.execute(sql`
@@ -107,12 +112,18 @@ export function startGuardianConfessions(client: Client): void {
   const tick = async () => {
     if (busy) return;
     busy = true;
-    try { await runGuardianConfessionTick(client); }
-    catch (error) { console.error(`[${BOT} confessions]`, error); }
+    try {
+      for (const guardian of ["faye", "lilith"] as const) {
+        try { await runGuardianConfessionTick(client, guardian); }
+        catch (error) { console.error(`[${guardian} confessions]`, error); }
+      }
+    }
     finally { busy = false; }
   };
   void (async () => {
-    await db.execute(sql`
+    for (const guardian of ["faye", "lilith"] as const) {
+      const table = sql.raw(TABLES[guardian]);
+      await db.execute(sql`
       CREATE TABLE IF NOT EXISTS ${table} (
         guild_id TEXT NOT NULL,
         week_start TIMESTAMPTZ NOT NULL,
@@ -124,11 +135,13 @@ export function startGuardianConfessions(client: Client): void {
         PRIMARY KEY (guild_id, week_start)
       );
     `);
+    }
     await tick();
     setInterval(() => void tick(), 60_000).unref();
-    console.log(`[${BOT} confessions] Weekly scheduler started`);
+    console.log("[guardian confessions] Both weekly schedules use Faye /confess submissions");
   })().catch(error => {
     started = false;
-    console.error(`[${BOT} confessions] Initialization failed`, error);
+    console.error("[guardian confessions] Initialization failed", error);
   });
 }
+
