@@ -6,7 +6,7 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 
 - One persistent server tree that evolves through six growth stages.
 - A public Top Gardener ranking, plus separate **Most Chats** and **Most Emoji Reactions Given** rankings for **today**, **this week (Monday to Sunday)**, and **this month**, using America/Chicago boundaries.
-- Flowers, vegetables and greenery: sunflower, tulip, rose, lavender, tomato, carrot, pumpkin, fern.
+- Original year-round plants: sunflower, tulip, rose, lavender, tomato, carrot, pumpkin, fern. Four more species are available each season, for 24 species total.
 - One plant per user per day. `/garden plant` opens a private seed menu, and `/garden water member:@friend` opens that person's growing plants (omit `member` for your own). `/garden harvest` opens only your mature plants. Dropdowns identify repeat plants by species and planting date, never a visible ID. Menus paginate as needed. Three waterings mature a plant; further watering is blocked, and only its owner can harvest it.
 - Christmas ornaments (star, colored baubles, snowflake, ribbon, lights), one per member per day in November–January.
 - A shared tree contribution total that includes chat/reaction activity and tending the garden.
@@ -22,13 +22,30 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 | `/garden leaderboard period:day category:chat` | Ten most active eligible chatters today |
 | `/garden leaderboard period:week category:reaction` | Ten most active emoji reactors this week |
 | `/garden leaderboard period:month category:all` | Total community gardener ranking this month |
-| `/garden plant` | Open a menu to pick a flower, vegetable or fern; optional `species` shortcut still works |
+| `/garden plant` | Open a seasonal seed picker with custom Discord emoji previews |
 | `/garden plants` | List plant names, planting dates, owners and watering progress |
 | `/garden water member:@friend` | Select one of a tagged member's plants by name and planting date |
 | `/garden water` | Choose a plant from your own plots; no ID required |
 | `/garden harvest` | Choose one of your own mature plants from a private dropdown |
 | `/garden decorate ornament:star` | Add a holiday decoration |
 | `/garden stats` | Your contribution statistics |
+
+## Seasonal plants and custom Discord emojis
+
+The plant picker displays **eight year-round plants plus four limited-time seasonal plants** (based on the America/Chicago calendar). Existing planted species never disappear or become unwaterable after a season changes. Each user still plants just once per day; harvesting and watering retain ID-free selectors.
+
+| Season | New plants and custom Discord emoji names |
+| --- | --- |
+| Spring (March–May) | Cherry Blossom `plant_cherry_blossom`; Wisteria `plant_wisteria`; Bluebell `plant_bluebell`; Peony `plant_peony` |
+| Summer (June–August) | Hibiscus `plant_hibiscus`; Lotus `plant_lotus`; Moonflower `plant_moonflower`; Glowing Mushroom `plant_glow_mushroom` |
+| Autumn (September–November) | Red Maple `plant_red_maple`; Chrysanthemum `plant_chrysanthemum`; Marigold `plant_marigold`; Autumn Mushroom `plant_autumn_mushroom` |
+| Winter (December–February) | Snowdrop `plant_snowdrop`; Holly `plant_holly`; Frosted Rose `plant_frosted_rose`; Crystal Flower `plant_crystal_flower` |
+
+For the eight year-round plants, use `plant_sunflower`, `plant_tulip`, `plant_rose`, `plant_lavender`, `plant_tomato`, `plant_carrot`, `plant_pumpkin`, and `plant_fern`.
+
+To add the art, go to **Discord Server Settings → Emoji → Upload Emoji**, upload your custom images, then assign each the exact name above. Faye automatically finds the emoji in the same server and uses it in the planting, watering, and harvesting menus and in public announcements. Missing custom art falls back to Unicode emojis, so the feature works even before all artwork is uploaded. No IDs need to be hardcoded.
+
+**Website note:** This is server-side custom emoji rendering for Discord. The dashboard uses built-in emoji previews for new plants; adding matching full-size original plant artwork to its illustrated garden is a separate visual task.
 
 ## Public activity announcements
 
