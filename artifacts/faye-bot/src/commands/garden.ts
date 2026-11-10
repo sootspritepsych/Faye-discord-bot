@@ -10,6 +10,8 @@ import {
 } from "../lib/gardenService";
 import { currentGardenHoliday, decorationEmoji } from "../lib/gardenSeasons";
 import { renderGardenView } from "../lib/gardenView";
+import { gardenGuideEmbed } from "../lib/gardenGuide";
+import { GARDEN_BADGES, getGardenerProgress } from "../lib/gardenAchievements";
 
 const plants: {name:GardenSpecies; emoji:string}[] = [
   {name:"sunflower",emoji:"🌻"}, {name:"tulip",emoji:"🌷"},
@@ -24,6 +26,11 @@ export const data = new SlashCommandBuilder()
   .setName("garden")
   .setDescription("Grow the shared Garden of Harmony tree, plants and holiday decorations")
   .addSubcommand(s=>s.setName("view").setDescription("Show a live picture of the tree and garden to everyone"))
+  .addSubcommand(s=>s.setName("guide").setDescription("Learn how to grow our community garden"))
+  .addSubcommand(s=>s.setName("profile").setDescription("Share a gardener's profile and achievements")
+    .addUserOption(o=>o.setName("member").setDescription("Whose profile? Defaults to yours")))
+  .addSubcommand(s=>s.setName("badges").setDescription("Check your earned gardening badges and progress")
+    .addUserOption(o=>o.setName("member").setDescription("Whose badges? Defaults to yours")))
   .addSubcommand(s=>s.setName("leaderboard").setDescription("See live Top Gardeners, chatters or emoji reactors")
     .addStringOption(o=>o.setName("period").setDescription("Choose a time window")
       .setRequired(true).addChoices(
@@ -61,6 +68,7 @@ function topLine(entries: Awaited<ReturnType<typeof gardenLeaderboard>>) {
 }
 
 const GARDEN_URL = "https://gardenofharmony.up.railway.app/garden";
+const GARDEN_SCENE_URL = "https://garden-of-harmony-migration-production.up.railway.app/api/garden-scene";
 const GARDEN_SCENE_URL = "https://garden-of-harmony-migration-production.up.railway.app/api/garden-scene";
 
 /**
@@ -105,7 +113,7 @@ function gardenUpdate(title: string, description: string, points: number, view: 
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   const sub=interaction.options.getSubcommand();
-  await interaction.deferReply({ephemeral:sub!=="view"});
+  await interaction.deferReply({ephemeral:sub!=="view" && sub!=="profile"});
   const guildId=interaction.guildId;
   if (!guildId) {await interaction.editReply("The community garden lives inside the server. 🌳");return;}
   if (sub==="setchannel") {
@@ -142,6 +150,50 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   }
   if (sub==="view") {
     await interaction.editReply(await renderGardenView(guildId));
+    return;
+  }
+  if (sub==="guide") {
+    await interaction.editReply({embeds:[gardenGuideEmbed()]});
+    return;
+  }
+  if (sub==="profile" || sub==="badges") {
+    const target = interaction.options.getUser("member") ?? interaction.user;
+    const {totals, earned, favorite} = await getGardenerProgress(guildId, target.id);
+    if (sub==="profile") {
+      const badges = earned.length
+        ? earned.map(b=>b.emoji+" "+b.name).join("  •  ")
+        : "🌱 No badges yet — your first seed is waiting!";
+      const embed = new EmbedBuilder()
+        .setColor(0x7ab68e)
+        .setAuthor({name:target.displayName+" • Garden of Harmony",iconURL:target.displayAvatarURL()})
+        .setTitle("🌸 Gardener Profile")
+        .setDescription("**"+totals.points.toLocaleString()+" growth points** contributed to the Harmony Tree!\n"+
+          "**Favorite activity:** "+favorite)
+        .addFields(
+          {name:"🌻 Growing together",value:"🌱 "+totals.plants+" planted  •  💧 "+totals.waterings+" watered\n"+
+            "🧺 "+totals.harvests+" harvested  •  🎀 "+totals.ornaments+" decorations"},
+          {name:"💬 Community kindness",value:"💬 "+totals.chats+" eligible chats  •  💚 "+totals.reactions+" reactions"},
+          {name:"🏅 Badges ("+earned.length+"/"+GARDEN_BADGES.length+")",value:badges}
+        )
+        .setThumbnail(target.displayAvatarURL({size:256}))
+        .setImage(GARDEN_SCENE_URL+"?view=tree&v="+Date.now())
+        .setURL(GARDEN_URL)
+        .setFooter({text:"Share this card • /garden badges for progress • Separate from XP"});
+      await interaction.editReply({embeds:[embed],allowedMentions:{parse:[]}});
+    } else {
+      const lines = GARDEN_BADGES.map(b=>{
+        const value=totals[b.stat];
+        const unlocked=value>=b.goal;
+        return (unlocked?"✅ ":"🔒 ")+b.emoji+" **"+b.name+"** — "+
+          (unlocked?"Unlocked!":Math.min(value,b.goal)+"/"+b.goal)+
+          "\n"+b.description;
+      });
+      const embed = new EmbedBuilder().setColor(0x85b992)
+        .setTitle("🏅 "+target.displayName+"'s Gardening Badges")
+        .setDescription("**"+earned.length+"/"+GARDEN_BADGES.length+" unlocked**\n\n"+lines.join("\n\n"))
+        .setFooter({text:"Badges unlock automatically through credited garden contributions"});
+      await interaction.editReply({embeds:[embed]});
+    }
     return;
   }
   if (sub==="leaderboard") {
