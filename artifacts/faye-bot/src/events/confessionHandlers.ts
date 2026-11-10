@@ -21,11 +21,11 @@ export async function handleConfessionReplyButton(interaction: ButtonInteraction
 
   const input = new TextInputBuilder()
     .setCustomId("reply-content")
-    .setLabel("Your anonymous reply")
+    .setLabel("Reply (anonymous to members)")
     .setStyle(TextInputStyle.Paragraph)
     .setMaxLength(800)
     .setRequired(true)
-    .setPlaceholder("Write your anonymous reply here...");
+    .setPlaceholder("Admins may review who submitted this for moderation.");
 
   modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
   await interaction.showModal(modal);
@@ -83,11 +83,11 @@ export async function handleConfessionReplyModal(interaction: ModalSubmitInterac
     .setColor(0xc8e6c9)
     .setTitle(`💬 Anonymous Reply to Confession #${confessionId}`)
     .setDescription(content)
-    .setFooter({ text: "Anonymous · Garden of Harmony 🍃" })
+    .setFooter({ text: "Anonymous to members · Admins can review · Garden of Harmony 🍃" })
     .setTimestamp();
 
   const sent = await (channel as TextChannel).send({ embeds: [embed] });
   await db.update(confessionReplies).set({ messageId: sent.id }).where(eq(confessionReplies.id, reply.id));
 
-  await interaction.editReply(`Your reply to Confession #${confessionId} has been posted anonymously. 🌿`);
+  await interaction.editReply(`Your reply to Confession #${confessionId} is anonymous to other members. Server administrators can review the author for moderation. 🌿`);
 }
