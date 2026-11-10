@@ -1,3 +1,4 @@
+import { startGuardianConfessions } from "../lib/guardianConfessionScheduler";
 import { Client, Events } from "discord.js";
 import { loadReminders } from "../lib/reminderScheduler";
 import { startWisdomScheduler } from "../lib/wisdomScheduler";
@@ -15,6 +16,7 @@ export default function registerReadyEvent(client: Client): void {
     console.log(`🌿 Faye is awake! Logged in as ${readyClient.user.tag}`);
 
     startFayeMoodRotation(client);
+    startGuardianConfessions(client);
     startQotdScheduler(client);
     startGardenAwards(client);
     startGardenMilestones(client);
@@ -35,3 +37,4 @@ export default function registerReadyEvent(client: Client): void {
     }
   });
 }
+
