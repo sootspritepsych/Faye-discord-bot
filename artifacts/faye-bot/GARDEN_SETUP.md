@@ -77,3 +77,14 @@ Create a Next.js route `/api/garden` using the dashboard's existing server-side 
 On the dashboard, poll the **server-side** `/api/garden` route every 15–30 seconds. Never call PostgreSQL from the browser. Render different tree illustrations or CSS/SVG stages according to growth points; display planted beds and position ornaments deterministically from their IDs so the decorations don't jump around on refresh. Display a user-friendly name or avatar only after resolving the Discord IDs through authorized server-side lookup. Respect the dashboard's existing public/admin access controls.
 
 **Suggested layout:** large interactive tree above garden beds; top three cards for Gardener of the Day, Week and Month; tabs for Most Chats and Most Emoji Reactions Given; Christmas decor appears on the tree during the season. Plant/ornament actions are handled by Faye's slash commands until the dashboard has a secured Discord sign-in/session and server-membership authorization.
+
+
+## First Bloom member launch features (November 2026)
+
+- `/garden guide` is the private first-time tutorial. The public `/garden view` embeds include a **How to Play** button that opens it privately without changing the shared panel.
+- `/garden profile [member]` sends a public shareable profile embed showing avatar, live garden image, favorite activity, contributions, and unlocked badges.
+- `/garden badges [member]` displays the eight badges and progress in a private response. Badges use cumulative credited contributions; there is no new database table, currency, or reset.
+- Faye checks tree growth every two minutes. New growth stages are celebrated in the configured public garden announcement channel, with a tree image and no role pings. If none is configured, Faye falls back to the QOTD posting channel when available. Run `/garden setchannel` to choose a dedicated place.
+- Existing tree stages are baselined on first scheduler run. Future stages are stored in `faye_garden_milestone_state`; the migration creates this table before Faye starts.
+- The public garden website's first-visit guide explains the new commands and links them with the original interactive seed library.
+- Pet Pals are intentionally outside this launch.
