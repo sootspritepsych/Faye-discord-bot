@@ -288,11 +288,23 @@ export async function plantGardenSeed(guildId: string, userId: string, species: 
 /** Live, waterable plants owned by a particular member. Only unharvested plots
  * below three waterings are offered; fetching an extra row supports paging. */
 export async function waterableGardenPlants(guildId: string, ownerId: string, offset = 0, limit = 26) {
-  const result = await pool.query<{ id: string; species: GardenSpecies; water_count: number }>(
-    `SELECT id, species, water_count FROM faye_garden_plants
+  const result = await pool.query<{ id: string; species: GardenSpecies; water_count: number; planted_at: Date }>(
+    `SELECT id, species, water_count, planted_at FROM faye_garden_plants
      WHERE guild_id=$1 AND owner_id=$2 AND harvested_at IS NULL AND water_count<3
      ORDER BY planted_at DESC, id DESC LIMIT $3 OFFSET $4`,
     [guildId, ownerId, Math.max(1, Math.min(limit, 26)), Math.max(0, offset)]
+  );
+  return result.rows;
+}
+
+/** Only the signed-in gardener's mature, unharvested plants are selectable.
+ * Keep the database IDs internal to Discord select-menu option values. */
+export async function harvestableGardenPlants(guildId: string, userId: string, offset = 0, limit = 26) {
+  const result = await pool.query<{ id: string; species: GardenSpecies; planted_at: Date }>(
+    `SELECT id, species, planted_at FROM faye_garden_plants
+     WHERE guild_id=$1 AND owner_id=$2 AND harvested_at IS NULL AND water_count>=3
+     ORDER BY planted_at DESC, id DESC LIMIT $3 OFFSET $4`,
+    [guildId, userId, Math.max(1, Math.min(limit, 26)), Math.max(0, offset)]
   );
   return result.rows;
 }
@@ -395,8 +407,8 @@ export async function addGardenOrnament(guildId:string, userId:string, decoratio
 }
 
 export async function gardenPlants(guildId:string, limit=10) {
-  const result=await pool.query<{id:string;owner_id:string;species:string;water_count:number}>(
-    "SELECT id,owner_id,species,water_count FROM faye_garden_plants "+
+  const result=await pool.query<{id:string;owner_id:string;species:string;water_count:number;planted_at:Date}>(
+    "SELECT id,owner_id,species,water_count,planted_at FROM faye_garden_plants "+
     "WHERE guild_id=$1 AND harvested_at IS NULL ORDER BY planted_at DESC LIMIT $2",
     [guildId,Math.min(100,Math.max(1,limit))]
   );
