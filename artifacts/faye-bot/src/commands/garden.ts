@@ -181,7 +181,7 @@ async function completeWater(
     await announceGarden(interaction, gardenUpdate(
       "💧 A garden neighbor watered a plant!",
       "<@" + interaction.user.id + "> watered <@" + r.ownerId + ">'s " + plantEmoji(r.species) +
-        " **" + r.species + " #" + id + "**!\\n" +
+        " **" + r.species + " #" + id + "**!\n" +
         "🌱 **" + r.waterCount + "/3 waterings**" +
         (r.waterCount >= 3 ? " — ready for harvest! 🧺" : " — growing stronger!"),
       3, "beds"
@@ -194,7 +194,7 @@ export async function handleGardenWaterInteraction(
   interaction: ButtonInteraction | StringSelectMenuInteraction
 ): Promise<void> {
   const [prefix, action, actorId, ownerId, pageText] = interaction.customId.split(":");
-  if (prefix !== "garden_water" || !actorId || !ownerId || !/^\\d+$/.test(ownerId)) {
+  if (prefix !== "garden_water" || !actorId || !ownerId || !/^\d+$/.test(ownerId)) {
     await interaction.reply({ content: "That garden menu is invalid. Please use `/garden water` again.", ephemeral: true });
     return;
   }
