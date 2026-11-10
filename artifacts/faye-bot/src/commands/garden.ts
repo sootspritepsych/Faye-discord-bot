@@ -11,18 +11,15 @@ import {
   type GardenOrnament, type GardenPeriod, type GardenRanking, type GardenSpecies,
 } from "../lib/gardenService";
 import { currentGardenHoliday, decorationEmoji } from "../lib/gardenSeasons";
+import {
+  availableGardenPlants, currentPlantSeason, isPlantAvailable,
+  plantEmoji, plantLabel, plantMenuEmoji,
+} from "../lib/gardenPlantsCatalog";
 import { renderGardenView } from "../lib/gardenView";
 import { gardenGuideEmbed } from "../lib/gardenGuide";
 import { GARDEN_BADGES, getGardenerProgress } from "../lib/gardenAchievements";
 
-const plants: {name:GardenSpecies; emoji:string}[] = [
-  {name:"sunflower",emoji:"🌻"}, {name:"tulip",emoji:"🌷"},
-  {name:"rose",emoji:"🌹"}, {name:"lavender",emoji:"🪻"},
-  {name:"tomato",emoji:"🍅"}, {name:"carrot",emoji:"🥕"},
-  {name:"pumpkin",emoji:"🎃"}, {name:"fern",emoji:"🌿"},
-];
 const ornaments: {name:GardenOrnament;emoji:string}[] = Object.entries(decorationEmoji).map(([name,emoji])=>({name:name as GardenOrnament,emoji}));
-const plantEmoji = (name:string) => plants.find(x=>x.name===name)?.emoji ?? "🌱";
 
 export const data = new SlashCommandBuilder()
   .setName("garden")
@@ -45,9 +42,7 @@ export const data = new SlashCommandBuilder()
         {name:"Chats",value:"chat"},
         {name:"Emoji reactions given",value:"reaction"})))
   .addSubcommand(s=>s.setName("plants").setDescription("See the newest community plants and who owns them"))
-  .addSubcommand(s=>s.setName("plant").setDescription("Plant a flower, vegetable or fern (one per day)")
-    .addStringOption(o=>o.setName("species").setDescription("What will you grow?").setRequired(true)
-      .addChoices(...plants.map(p=>({name:p.emoji+" "+p.name,value:p.name})))))
+  .addSubcommand(s=>s.setName("plant").setDescription("Choose a seasonal seed from a private menu (one per day)"))
   .addSubcommand(s=>s.setName("water").setDescription("Tag a gardener and choose which of their plants to water (3/day)")
     .addUserOption(o=>o.setName("member").setDescription("Whose plant? Defaults to you"))
     .addIntegerOption(o=>o.setName("plant_id").setDescription("Optional: water a known plant ID directly").setMinValue(1)))
@@ -118,6 +113,75 @@ function gardenUpdate(title: string, description: string, points: number, view: 
     .setTimestamp();
 }
 
+
+/** /garden plant opens a private menu, rather than making members type species IDs. */
+async function showPlantPicker(interaction: ChatInputCommandInteraction): Promise<void> {
+  const options = availableGardenPlants();
+  const season = currentPlantSeason();
+  const picker = new StringSelectMenuBuilder()
+    .setCustomId("garden_plant:" + interaction.user.id)
+    .setPlaceholder("Choose your next seed 🌱")
+    .addOptions(options.map(p => ({
+      label: p.label,
+      value: p.key,
+      description: p.season === "all" ? "Available year-round" : "Limited to " + season,
+      emoji: plantMenuEmoji(p.key, interaction.guild),
+    })));
+  await interaction.editReply({
+    content: "🌱 **Pick a seed to plant!** " + season[0].toUpperCase() + season.slice(1) +
+      " varieties are here for a limited time. You can still water and harvest them after the season changes. " +
+      "One new seed per day.",
+    components: [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(picker)],
+  });
+}
+
+/** Select-menu submissions re-check the season and today's limit server-side. */
+export async function handleGardenPlantInteraction(interaction: StringSelectMenuInteraction): Promise<void> {
+  const actorId = interaction.customId.split(":")[1];
+  if (interaction.user.id !== actorId) {
+    await interaction.reply({
+      content: "🌱 That seed menu belongs to another gardener. Run `/garden plant` to open yours.",
+      ephemeral: true,
+    });
+    return;
+  }
+  if (!interaction.guildId || !(await gardenEnabled(interaction.guildId))) {
+    await interaction.update({ content: "The garden is currently paused. 🌱", components: [] });
+    return;
+  }
+  const species = interaction.values[0];
+  if (!isPlantAvailable(species)) {
+    await interaction.update({
+      content: "🍂 That seasonal seed is no longer available. Run `/garden plant` for today's choices.",
+      components: [],
+    });
+    return;
+  }
+  await interaction.deferUpdate();
+  const result = await plantGardenSeed(interaction.guildId, interaction.user.id, species);
+  const display = plantEmoji(species, interaction.guild);
+  const label = plantLabel(species);
+  await interaction.editReply({
+    content: result.status === "planted"
+      ? display + " You planted **" + label + " #" + result.id +
+        "**! Friends can help with `/garden water member:@you`."
+      : result.status === "daily_limit"
+        ? "🌱 You've already planted today! Come back tomorrow for another seed."
+      : result.status === "out_of_season"
+        ? "🍂 That seed is out of season. Open `/garden plant` for current choices."
+      : "The garden is paused.",
+    components: [],
+  });
+  if (result.status === "planted") {
+    await announceGarden(interaction, gardenUpdate(
+      display + " A new " + label + " has been planted!",
+      "<@" + interaction.user.id + "> planted **" + label + " #" + result.id + "** in our garden!\n" +
+        "💧 Help it grow with `/garden water member:@gardener` and choose their seed.",
+      5, "beds",
+    ));
+  }
+}
+
 const WATER_PAGE_SIZE = 25;
 type WaterInteraction = ChatInputCommandInteraction | StringSelectMenuInteraction;
 
@@ -135,10 +199,10 @@ async function showWaterPicker(
       .setCustomId(base + "pick:" + interaction.user.id + ":" + ownerId + ":" + page)
       .setPlaceholder("Choose a plant to water 💧")
       .addOptions(options.map(plant => ({
-        label: plant.species + " #" + plant.id,
+        label: plantLabel(plant.species) + " #" + plant.id,
         description: plant.water_count + "/3 waterings • " + (3-plant.water_count) + " left to mature",
         value: plant.id,
-        emoji: plantEmoji(plant.species),
+        emoji: plantMenuEmoji(plant.species, interaction.guild),
       })));
     rows.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select));
   }
@@ -165,7 +229,7 @@ async function completeWater(
 ): Promise<void> {
   const r = await waterGardenPlant(guildId, interaction.user.id, id, expectedOwnerId);
   const message = r.status === "watered"
-    ? "💧 You watered <@" + r.ownerId + ">'s " + plantEmoji(r.species) +
+    ? "💧 You watered <@" + r.ownerId + ">'s " + plantEmoji(r.species, interaction.guild) +
       " **" + r.species + " #" + id + "** (" + r.waterCount + "/3)!" +
       (r.waterCount >= 3 ? " It's ready for its owner to harvest! 🧺" : " It's growing! 🌿")
     : r.status === "already_watered" ? "You've already watered this plant today. 💧"
@@ -182,7 +246,7 @@ async function completeWater(
   if (r.status === "watered") {
     await announceGarden(interaction, gardenUpdate(
       "💧 A garden neighbor watered a plant!",
-      "<@" + interaction.user.id + "> watered <@" + r.ownerId + ">'s " + plantEmoji(r.species) +
+      "<@" + interaction.user.id + "> watered <@" + r.ownerId + ">'s " + plantEmoji(r.species, interaction.guild) +
         " **" + r.species + " #" + id + "**!\n" +
         "🌱 **" + r.waterCount + "/3 waterings**" +
         (r.waterCount >= 3 ? " — ready for harvest! 🧺" : " — growing stronger!"),
@@ -330,28 +394,14 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     const embed=new EmbedBuilder().setTitle("🌼 Community Garden Beds")
       .setColor(0x7baa8d)
       .setDescription(rows.length ? rows.map(p=>
-        plantEmoji(p.species)+" **#"+p.id+" "+p.species+"** by <@"+p.owner_id+"> — "+
+        plantEmoji(p.species, interaction.guild)+" **#"+p.id+" "+plantLabel(p.species)+"** by <@"+p.owner_id+"> — "+
         p.water_count+"/3 waterings"+(p.water_count>=3?" ✅ Ready to harvest":"")
       ).join("\n") : "No plants yet. Grow the first one with `/garden plant`!")
       .setFooter({text:"Water anyone's plant • 3 waterings to mature"});
     await interaction.editReply({embeds:[embed]});return;
   }
   if (sub==="plant") {
-    const species=interaction.options.getString("species",true) as GardenSpecies;
-    const r=await plantGardenSeed(guildId,interaction.user.id,species);
-    await interaction.editReply(r.status==="planted"
-      ?plantEmoji(species)+" You planted **"+species+" #"+r.id+"**! Others can help by running `/garden water plant_id:"+r.id+"`."
-      :r.status==="daily_limit"?"You've already planted today! Come back another day. 🌱"
-      :"The garden is paused.");
-    if (r.status==="planted") {
-      await announceGarden(interaction, gardenUpdate(
-        plantEmoji(species)+" A new "+species+" has been planted!",
-        "<@"+interaction.user.id+"> planted **"+species+" #"+r.id+"** in our shared garden!\n"+
-        "💧 Help it grow with `/garden water plant_id:"+r.id+"`.",
-        5,
-        "beds"
-      ));
-    }
+    await showPlantPicker(interaction);
     return;
   }
   if (sub==="water") {
@@ -368,12 +418,12 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     const id=interaction.options.getInteger("plant_id",true);
     const r=await harvestGardenPlant(guildId,interaction.user.id,id);
     await interaction.editReply(r.status==="harvested"
-      ?"🧺 You harvested your "+plantEmoji(r.species)+" **"+r.species+"**! The shared tree grew by **5 points**."
+      ?"🧺 You harvested your "+plantEmoji(r.species, interaction.guild)+" **"+plantLabel(r.species)+"**! The shared tree grew by **5 points**."
       :"You can harvest only your own living plants after three waterings. 🌱");
     if (r.status==="harvested") {
       await announceGarden(interaction, gardenUpdate(
         "🧺 It's harvest time!",
-        "<@"+interaction.user.id+"> harvested "+plantEmoji(r.species)+" **"+r.species+" #"+id+"**!\n"+
+        "<@"+interaction.user.id+"> harvested "+plantEmoji(r.species, interaction.guild)+" **"+plantLabel(r.species)+" #"+id+"**!\n"+
         "🌼 Thank you for helping our garden flourish.",
         5,
         "beds"
