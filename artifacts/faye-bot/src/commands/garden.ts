@@ -331,7 +331,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
   if (sub==="view") {
-    await interaction.editReply(await renderGardenView(guildId));
+    await interaction.editReply(await renderGardenView(guildId, "tree", interaction.guild));
     return;
   }
   if (sub==="guide") {
