@@ -30,3 +30,4 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @workspace/faye-bot run typecheck
+      - run: pnpm --filter @workspace/faye-bot test

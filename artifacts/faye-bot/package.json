@@ -6,7 +6,8 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/migrateQotd.ts && tsx src/migratePolls.ts && tsx src/migrateGarden.ts && tsx src/deploy-commands.ts && tsx src/index.ts",
     "deploy-commands": "tsx src/deploy-commands.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --require tsx/cjs --test tests/*.test.cjs"
   },
   "dependencies": {
     "discord.js": "^14.16.3",

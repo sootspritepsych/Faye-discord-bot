@@ -10,6 +10,7 @@ import {
 import { eq } from "drizzle-orm";
 
 import getFayeResponse from "../lib/openai";
+import { buildReplyContext } from "../lib/replyContext";
 import { trackGardenMessage, recordGardenSpirit } from "../lib/gardenService";
 
 import {
@@ -1355,7 +1356,8 @@ async function handleFayeMessage(
   message: Message,
   rawContent: string,
   rawImageUrls: string[] = [],
-  bypassCooldown = false
+  bypassCooldown = false,
+  referencedMessage: Message | null = null
 ): Promise<void> {
   const userId =
     message.author.id;
@@ -1513,17 +1515,26 @@ async function handleFayeMessage(
         displayName
       );
 
+    const replyContext = await buildReplyContext(
+      message,
+      referencedMessage,
+      client.user?.id ?? "faye"
+    );
+
+    const memberAnswer = rawContent || (
+      imageUrls.length === 1
+        ? "[Shared an image]"
+        : `[Shared ${imageUrls.length} images]`
+    );
+
     await saveConversationMessage(
       conversationKey,
       message.author.id,
       displayName,
       "user",
-      rawContent ||
-        (
-          imageUrls.length === 1
-            ? "[Shared an image]"
-            : `[Shared ${imageUrls.length} images]`
-        )
+      replyContext
+        ? `${displayName}'s answer: ${memberAnswer}\n\n${replyContext}`
+        : memberAnswer
     );
 
     const recentMessages =
@@ -1543,7 +1554,8 @@ async function handleFayeMessage(
         recentMessages,
         userMemories,
         imageUrls,
-        rapportContext
+        rapportContext,
+        replyContext
       );
 
     await message.reply({
@@ -1755,7 +1767,9 @@ export default function registerMessageCreateEvent(
             client,
             message,
             content,
-            imageUrls
+            imageUrls,
+            false,
+            referencedMessage
           );
 
           return;
@@ -1871,7 +1885,8 @@ export default function registerMessageCreateEvent(
             message,
             content,
             imageUrls,
-            botWasMentioned
+            botWasMentioned,
+            referencedMessage
           );
 
           return;
