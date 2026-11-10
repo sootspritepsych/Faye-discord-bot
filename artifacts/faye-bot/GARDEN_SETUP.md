@@ -7,7 +7,7 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 - One persistent server tree that evolves through six growth stages.
 - A public Top Gardener ranking, plus separate **Most Chats** and **Most Emoji Reactions Given** rankings for **today**, **this week (Monday to Sunday)**, and **this month**, using America/Chicago boundaries.
 - Flowers, vegetables and greenery: sunflower, tulip, rose, lavender, tomato, carrot, pumpkin, fern.
-- One plant per user per day. A member can water their own or another member's plant using its ID. Three waterings mature a plant; only its owner can harvest it.
+- One plant per user per day. Use `/garden water member:@friend` to choose exactly which of their still-growing plants to water from a private dropdown (with pagination). Omit `member` to see your own plots. The old `plant_id` option remains available. Three waterings mature a plant; further watering is blocked, and only its owner can harvest it.
 - Christmas ornaments (star, colored baubles, snowflake, ribbon, lights), one per member per day in November–January.
 - A shared tree contribution total that includes chat/reaction activity and tending the garden.
 - Opt-in via staff-only `/garden enable`. No historical posts are processed; data is stored only after enabling.
@@ -24,14 +24,16 @@ This is a **separate, opt-in community system**, not the server's existing chat/
 | `/garden leaderboard period:month category:all` | Total community gardener ranking this month |
 | `/garden plant species:tomato` | Plant a flower, vegetable, or fern |
 | `/garden plants` | List plots, owners and watering progress |
-| `/garden water plant_id:123` | Help mature a plant |
+| `/garden water member:@friend` | Tag a member, then select one of their plants from a dropdown |
+| `/garden water` | Choose a plant from your own plots |
+| `/garden water plant_id:123` | Existing direct-ID watering still works |
 | `/garden harvest plant_id:123` | Harvest your mature plant |
 | `/garden decorate ornament:star` | Add a holiday decoration |
 | `/garden stats` | Your contribution statistics |
 
 ## Public activity announcements
 
-Whenever someone successfully **plants, waters, harvests, or decorates**, Faye sends a colorful public embed celebrating the contribution and the tree's new growth points. Failed/limited actions still receive a private response only. These updates do **not** ping everyone or any role.
+Whenever someone successfully **plants, waters, harvests, or decorates**, Faye sends a colorful public embed celebrating the contribution and the tree's new growth points. Failed/limited actions still receive a private response only. When you successfully water someone else's plant, Faye mentions that plant's owner in the public success announcement (no role pings). These updates do **not** ping everyone or any role.
 
 - Use `/garden setchannel channel:#garden-updates` as a member with **Manage Server** to send all success announcements to a shared, publicly viewable channel.
 - Until a channel is configured, the bot posts public updates into the channel where members run the garden commands.
