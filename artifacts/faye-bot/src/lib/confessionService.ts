@@ -30,7 +30,7 @@ export async function publishConfession(submission: ConfessionSubmission) {
 
   const title = `${emoji} ${category} Confession #${inserted.id}`;
   const embed = new EmbedBuilder().setColor(0xa5d6a7).setTitle(title)
-    .setDescription(content).setFooter({ text: "Anonymous to members · Admins can review · Garden of Harmony 🍃" }).setTimestamp();
+    .setDescription(content).setFooter({ text: "Anonymous · Garden of Harmony 🍃" }).setTimestamp();
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder().setCustomId(`confess-reply_${inserted.id}`)
       .setLabel("💬 Reply Anonymously").setStyle(ButtonStyle.Secondary)
@@ -39,7 +39,7 @@ export async function publishConfession(submission: ConfessionSubmission) {
     ?.has(PermissionFlagsBits.EmbedLinks) ?? false;
   const sent = await channel.send({
     ...(canEmbed ? { embeds: [embed] } : {
-      content: `**${title}**\n\n${content}\n\nAnonymous to members · Admins can review · Garden of Harmony 🍃`,
+      content: `**${title}**\n\n${content}\n\nAnonymous · Garden of Harmony 🍃`,
     }),
     components: [row],
     allowedMentions: { parse: [] },
