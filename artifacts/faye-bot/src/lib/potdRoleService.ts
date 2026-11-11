@@ -1,7 +1,6 @@
 import {
   type Client,
   type Guild,
-  type GuildMember,
   PermissionFlagsBits,
   type Role,
 } from "discord.js";
@@ -60,20 +59,4 @@ export async function initializePotdRoles(client: Client): Promise<void> {
       console.error("❌ Failed to initialize @POTD for guild " + config.guild_id, error);
     }
   }
-}
-
-export async function assignPotdRole(member: GuildMember): Promise<void> {
-  const config = await pollConfig(member.guild.id);
-  if (!config?.channel_id || member.user.bot) return;
-  const role = await ensurePotdRole(member.guild);
-  if (!role || member.roles.cache.has(role.id)) return;
-
-  const me = member.guild.members.me ?? await member.guild.members.fetchMe();
-  if (!me.permissions.has(PermissionFlagsBits.ManageRoles) ||
-      me.roles.highest.comparePositionTo(role) <= 0) {
-    console.warn("⚠️ Cannot assign @POTD: grant Faye Manage Roles and move its role above POTD");
-    return;
-  }
-  await member.roles.add(role, "Daily poll notifications for newly joined members");
-  console.log("🗳️ Assigned @POTD to new member " + member.id);
 }
