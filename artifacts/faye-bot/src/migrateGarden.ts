@@ -107,8 +107,10 @@ async function migrateGarden(): Promise<void> {
       CHECK (decoration IN (
         'star','red_bauble','gold_bauble','snowflake','ribbon','lights',
         'heart','shamrock','egg','flower','rainbow','flag','firework',
-        'leaf','pumpkin','ghost','turkey'
+        'leaf','pumpkin','ghost','turkey','mushroom','lantern','butterfly',
+        'pinecone','candy_cane','bell','snowman','bat'
       ));
+    ALTER TABLE faye_garden_ornaments DROP CONSTRAINT IF EXISTS faye_garden_ornaments_guild_id_user_id_decoration_season_key;
     CREATE INDEX IF NOT EXISTS faye_garden_ornaments_holiday_idx
       ON faye_garden_ornaments (guild_id,holiday_key,cycle);
 
