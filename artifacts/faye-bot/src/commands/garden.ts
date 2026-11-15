@@ -44,7 +44,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(s=>s.setName("water").setDescription("Choose a gardener's plant to water (3/day)")
     .addUserOption(o=>o.setName("member").setDescription("Whose plant? Defaults to yours")))
   .addSubcommand(s=>s.setName("harvest").setDescription("Choose one of your ready-to-harvest plants"))
-  .addSubcommand(s=>s.setName("decorate").setDescription("Add a decoration for the current holiday or season")
+  .addSubcommand(s=>s.setName("decorate").setDescription("Place up to 5 seasonal decorations daily; repeats welcome")
     .addStringOption(o=>o.setName("ornament").setDescription("Choose your ornament").setRequired(true)
       .addChoices(...ornaments.map(p=>({name:p.emoji+" "+p.name.replace(/_/g," "),value:p.name})))))
   .addSubcommand(s=>s.setName("stats").setDescription("Your garden contribution, separate from chat XP")
@@ -519,7 +519,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     await interaction.editReply(r.status==="added"
       ?emoji+" Your **"+ornament.replace(/_/g," ")+"** now decorates the "+r.holiday+"!"
       :r.status==="out_of_season"?"🎊 That decoration does not fit the current "+currentGardenHoliday().name+". Try: "+currentGardenHoliday().allowed.map(d=>decorationEmoji[d]+" "+d.replace(/_/g," ")).join(", ")
-      :"You've already decorated today, or you've placed this decoration this season.");
+      :"You've placed all 5 decorations for today! Come back tomorrow. 🌸");
     if (r.status==="added") {
       await announceGarden(interaction, gardenUpdate(
         currentGardenHoliday().emoji+" A new seasonal decoration!",
