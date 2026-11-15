@@ -411,7 +411,7 @@ export async function addGardenOrnament(guildId:string, userId:string, decoratio
       `INSERT INTO faye_garden_ornaments (guild_id,user_id,decoration,season,holiday_key,cycle)
        SELECT $1,$2,$3,$4,$5,$6 WHERE (
          SELECT count(*) FROM faye_garden_ornaments WHERE guild_id=$1 AND user_id=$2
-         AND created_at >= ${LOCAL_DAY_SQL}) < 5
+         AND created_at >= ${LOCAL_DAY_SQL}) < 1
        RETURNING id`,
       [guildId,userId,decoration,season,holiday.id,holiday.cycle]
     );
