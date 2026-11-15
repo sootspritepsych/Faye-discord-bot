@@ -5,7 +5,7 @@
  */
 export type GardenDecoration = "star" | "red_bauble" | "gold_bauble" | "snowflake" |
   "ribbon" | "lights" | "heart" | "shamrock" | "egg" | "flower" | "rainbow" |
-  "flag" | "firework" | "leaf" | "pumpkin" | "ghost" | "turkey";
+  "flag" | "firework" | "leaf" | "pumpkin" | "ghost" | "turkey" | "mushroom" | "lantern" | "butterfly" | "pinecone" | "candy_cane" | "bell" | "snowman" | "bat";
 
 export type GardenHoliday = {
   id: string; name: string; emoji: string; cycle: number;
@@ -13,22 +13,22 @@ export type GardenHoliday = {
 };
 
 const decorations: Record<string, GardenDecoration[]> = {
-  newyear: ["star","gold_bauble","firework","lights"],
-  valentines: ["heart","ribbon","flower","lights"],
-  stpatricks: ["shamrock","leaf","lights"],
-  easter: ["egg","flower","ribbon"],
-  earthday: ["leaf","flower","rainbow"],
+  newyear: ["star","gold_bauble","firework","lights","lantern","bell"],
+  valentines: ["heart","ribbon","flower","lights","butterfly"],
+  stpatricks: ["shamrock","leaf","lights","mushroom"],
+  easter: ["egg","flower","ribbon","butterfly"],
+  earthday: ["leaf","flower","rainbow","butterfly","mushroom"],
   memorial: ["flag","star","flower"],
-  pride: ["rainbow","flower","lights"],
+  pride: ["rainbow","flower","lights","butterfly","lantern"],
   independence: ["flag","firework","star","lights"],
   laborday: ["star","flower","flag"],
-  halloween: ["pumpkin","ghost","leaf","lights"],
-  thanksgiving: ["turkey","leaf","pumpkin","ribbon"],
-  christmas: ["star","red_bauble","gold_bauble","snowflake","ribbon","lights"],
-  winter: ["snowflake","star","lights"],
-  spring: ["flower","leaf","egg"],
-  summer: ["flower","rainbow","lights"],
-  autumn: ["leaf","pumpkin","ribbon"],
+  halloween: ["pumpkin","ghost","leaf","lights","bat","mushroom","lantern"],
+  thanksgiving: ["turkey","leaf","pumpkin","ribbon","pinecone","mushroom"],
+  christmas: ["star","red_bauble","gold_bauble","snowflake","ribbon","lights","candy_cane","bell","snowman","pinecone","lantern"],
+  winter: ["snowflake","star","lights","snowman","pinecone","lantern"],
+  spring: ["flower","leaf","egg","butterfly","mushroom"],
+  summer: ["flower","rainbow","lights","butterfly","lantern"],
+  autumn: ["leaf","pumpkin","ribbon","pinecone","mushroom","lantern"],
 };
 
 function easterUTC(year: number): Date {
@@ -97,5 +97,6 @@ export const decorationEmoji: Record<GardenDecoration,string> = {
   star:"⭐",red_bauble:"🔴",gold_bauble:"🟡",snowflake:"❄️",
   ribbon:"🎀",lights:"✨",heart:"💗",shamrock:"☘️",egg:"🥚",
   flower:"🌸",rainbow:"🌈",flag:"🇺🇸",firework:"🎆",leaf:"🍁",
-  pumpkin:"🎃",ghost:"👻",turkey:"🦃",
+  pumpkin:"🎃",ghost:"👻",turkey:"🦃",mushroom:"🍄",lantern:"🏮",butterfly:"🦋",pinecone:"🌰",
+  candy_cane:"🍬",bell:"🔔",snowman:"⛄",bat:"🦇",
 };
