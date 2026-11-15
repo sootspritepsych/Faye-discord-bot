@@ -406,15 +406,16 @@ export async function addGardenOrnament(guildId:string, userId:string, decoratio
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))", [guildId,userId]);
     const result = await client.query<{id:string}>(
       `INSERT INTO faye_garden_ornaments (guild_id,user_id,decoration,season,holiday_key,cycle)
        SELECT $1,$2,$3,$4,$5,$6 WHERE NOT EXISTS (
          SELECT 1 FROM faye_garden_ornaments WHERE guild_id=$1 AND user_id=$2
-         AND created_at >= ${LOCAL_DAY_SQL})
-       ON CONFLICT DO NOTHING RETURNING id`,
+         AND created_at >= ${LOCAL_DAY_SQL}) < 5
+       RETURNING id`,
       [guildId,userId,decoration,season,holiday.id,holiday.cycle]
     );
-    if (!result.rows.length) {await client.query("ROLLBACK");return {status:"limit_or_duplicate" as const};}
+    if (!result.rows.length) {await client.query("ROLLBACK");return {status:"daily_limit" as const};}
     await client.query(
       "INSERT INTO faye_garden_activity (guild_id,user_id,kind,source_id,points) VALUES ($1,$2,'ornament',$3,3)",
       [guildId,userId,"ornament:"+result.rows[0].id]
