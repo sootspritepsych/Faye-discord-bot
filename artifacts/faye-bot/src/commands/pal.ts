@@ -1,5 +1,15 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { award,betaEnabled,cleanName,getPal,hatch,levelFor,rename,speciesNames, type Species } from "../lib/petPalsBeta";
+// Nine artwork URLs, one per species and evolution stage. HTTPS images only.
+function palArtUrl(species: Species, stage: number): string | null {
+  const key = `PET_PAL_ART_${species.toUpperCase()}_${stage + 1}`;
+  const url = process.env[key]?.trim();
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" ? parsed.href : null;
+  } catch { return null; }
+}
 export const data = new SlashCommandBuilder().setName("pal").setDescription("Raise your Garden of Harmony Pet Pal (tester beta)")
  .addSubcommand(s=>s.setName("hatch").setDescription("Choose your permanent starter").addStringOption(o=>o.setName("starter").setDescription("Choose your Pal").setRequired(true).addChoices({name:"Jelly Dragon",value:"jelly_dragon"},{name:"Cat Frog",value:"cat_frog"},{name:"Fox Raccoon",value:"fox_raccoon"})).addStringOption(o=>o.setName("name").setDescription("Your Pal's name").setRequired(true)))
  .addSubcommand(s=>s.setName("name").setDescription("Name or rename your Pal").addStringOption(o=>o.setName("name").setDescription("New name").setRequired(true)))
@@ -23,6 +33,8 @@ export async function execute(i:ChatInputCommandInteraction) {
       if (!pal) {await i.reply({content:"No Pal hatched yet! Use `/pal hatch` to choose your starter.",ephemeral:true});return;}
       const level=levelFor(pal.xp),stage=level>=40?2:level>=15?1:0;
       const embed=new EmbedBuilder().setColor(0x91b99b).setTitle(`🐾 ${pal.pal_name}`).setDescription(`**${speciesNames[pal.starter_species][stage]}** • ${speciesNames[pal.starter_species][0].split(" ")[0]} family`).addFields({name:"Level",value:String(level),inline:true},{name:"XP",value:String(pal.xp),inline:true},{name:"Evolution",value:`${stage+1}/3`,inline:true}).setFooter({text:`Belongs to ${target.username} • Tester beta`});
+      const artwork = palArtUrl(pal.starter_species,stage);
+      if (artwork) embed.setImage(artwork);
       await i.reply({embeds:[embed]});return;
     }
     const pal=await getPal(guild,user);
