@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 
 import { eq } from "drizzle-orm";
+import { award, betaEnabled } from "../lib/petPalsBeta";
 
 import getFayeResponse from "../lib/openai";
 import { buildReplyContext } from "../lib/replyContext";
@@ -1654,6 +1655,12 @@ export default function registerMessageCreateEvent(
     Events.MessageCreate,
     async (message: Message) => {
       try {
+        if (message.guildId && !message.author.bot && betaEnabled(message.channelId)) {
+          const kind = message.stickers.size > 0 ? "sticker" : "message";
+          if (kind === "sticker" || message.content.trim().length >= 8) {
+            void award(message.guildId, message.author.id, kind, message.id).catch(console.error);
+          }
+        }
         if (!client.user) {
           return;
         }
