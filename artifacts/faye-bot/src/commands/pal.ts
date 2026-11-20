@@ -1,4 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { battle, battleStats } from "../lib/petBattles";
 import { award,betaEnabled,cleanName,getPal,hatch,levelFor,rename,speciesNames, type Species } from "../lib/petPalsBeta";
 // Nine artwork URLs, one per species and evolution stage. HTTPS images only.
 function palArtUrl(species: Species, stage: number): string | null {
@@ -15,6 +16,8 @@ export const data = new SlashCommandBuilder().setName("pal").setDescription("Rai
  .addSubcommand(s=>s.setName("name").setDescription("Name or rename your Pal").addStringOption(o=>o.setName("name").setDescription("New name").setRequired(true)))
  .addSubcommand(s=>s.setName("rename").setDescription("Rename your Pal").addStringOption(o=>o.setName("name").setDescription("New name").setRequired(true)))
  .addSubcommand(s=>s.setName("view").setDescription("View your Pal or another member's Pal").addUserOption(o=>o.setName("member").setDescription("Member to view")))
+ .addSubcommand(s=>s.setName("battle").setDescription("Automatically battle another gardener’s Pet Pal").addUserOption(o=>o.setName("opponent").setDescription("Gardener to challenge").setRequired(true)))
+ .addSubcommand(s=>s.setName("battle-stats").setDescription("See Pet Pal battle wins and losses").addUserOption(o=>o.setName("member").setDescription("Member to view")))
  .addSubcommand(s=>s.setName("play").setDescription("Play with your Pal for XP"))
  .addSubcommand(s=>s.setName("care").setDescription("Complete an optional self-care quest").addStringOption(o=>o.setName("task").setDescription("Choose a self-care activity").setRequired(true).addChoices({name:"Drink water",value:"water"},{name:"Eat a meal or snack",value:"food"},{name:"Take a break",value:"rest"},{name:"Move or stretch",value:"move"},{name:"Do something joyful",value:"joy"})));
 export async function execute(i:ChatInputCommandInteraction) {
@@ -36,6 +39,24 @@ export async function execute(i:ChatInputCommandInteraction) {
       const artwork = palArtUrl(pal.starter_species,stage);
       if (artwork) embed.setImage(artwork);
       await i.reply({embeds:[embed]});return;
+    }
+    if (sub==="battle-stats") {
+      const target=i.options.getUser("member")??i.user;
+      const stats=await battleStats(guild,target.id);
+      await i.reply({content:`⚔️ **${target.username}'s Pet Pal Battles** — 🏆 **${stats.wins} wins** • **${stats.battles-stats.wins} losses** • **${stats.battles} total**`});return;
+    }
+    if (sub==="battle") {
+      const opponent=i.options.getUser("opponent",true);
+      if(opponent.bot) {await i.reply({content:"🌿 Choose a real gardener to battle!"});return;}
+      await i.deferReply();
+      try {
+        const result=await battle(guild,user,opponent.id);
+        const embed=new EmbedBuilder().setColor(0x91b99b).setTitle("⚔️🌸 Pet Pals Battle!")
+          .setDescription(`<@${user}> **${result.a.pal_name}** (Lv. ${result.pa.level}) vs <@${opponent.id}> **${result.b.pal_name}** (Lv. ${result.pb.level})\n\n${result.summary}\n\n🏆 **${result.winner.pal_name} wins!**\n✨ Winner: **+20 XP** • Other Pal: **+8 XP**`)
+          .setFooter({text:"3 challenges per gardener per day • Same matchup: 1-hour cooldown"});
+        await i.editReply({embeds:[embed]});
+      } catch(error) {await i.editReply({content:error instanceof Error?error.message:"The battle couldn't begin. Please try again."});}
+      return;
     }
     const pal=await getPal(guild,user);
     if (!pal) {await i.reply({content:"Hatch your starter first with `/pal hatch`.",ephemeral:false});return;}
