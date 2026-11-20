@@ -47,7 +47,9 @@ export async function execute(i:ChatInputCommandInteraction) {
       const kind=sub==="play"?"pal_play":"self_care";
       const source=sub==="play"?`play:${i.id}`:`care:${i.options.getString("task",true)}:${new Date().toISOString().slice(0,10)}`;
       const xp=await award(guild,user,kind,source);
-      await i.reply({content:xp?`💕 ${pal.pal_name} earned **+${xp} XP**!`:"🌿 You've already earned this reward or reached today's limit. Come back later!",ephemeral:false});return;
+      const taskLabels: Record<string,string> = {water:"💧 Drank water",food:"🍎 Ate a meal or snack",rest:"🌙 Took a break",move:"🌿 Moved or stretched",joy:"🌸 Did something joyful"};
+      const activity = sub==="care" ? taskLabels[i.options.getString("task",true)] : null;
+      await i.reply({content:xp?(activity?`💕 **${i.user.username}** completed self-care: **${activity}**! ${pal.pal_name} earned **+${xp} XP**!`:`💕 **${i.user.username}** played with **${pal.pal_name}** and earned **+${xp} XP**!`):(activity?`🌿 **${i.user.username}** selected **${activity}**, but has already earned this reward or reached today\'s limit.`:"🌿 You\'ve already earned this reward or reached today\'s limit. Come back later!"),ephemeral:false});return;
     }
   } catch(e) {await i.reply({content:e instanceof Error?e.message:"Something went wrong.",ephemeral:false});}
 }
