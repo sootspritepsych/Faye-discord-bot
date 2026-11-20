@@ -32,7 +32,7 @@ const client = new Client({
 
 async function main() {
   await initDb();
-  if (process.env.PET_PALS_TEST_CHANNEL_ID) await initPetPals();
+  await initPetPals();
 
   registerReadyEvent(client);
   registerGuildMemberAddEvent(client);
