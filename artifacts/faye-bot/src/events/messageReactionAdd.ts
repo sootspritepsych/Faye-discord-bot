@@ -1,5 +1,6 @@
 import { Client, Events, ChannelType, PermissionFlagsBits, type MessageReaction, type User } from "discord.js";
 import { trackGardenReaction } from "../lib/gardenService";
+import { award, betaEnabled } from "../lib/petPalsBeta";
 
 /** Reactions GIVEN by a member count; reactions received do not. */
 export default function registerGardenReactionEvent(client: Client): void {
@@ -19,6 +20,7 @@ export default function registerGardenReactionEvent(client: Client): void {
           !message.channel.permissionsFor(message.guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)) {
         return; // Never surface private or adults-only activity in public rankings.
       }
+      if (betaEnabled(message.channelId)) await award(guildId,user.id,"reaction",`${message.id}:${reaction.emoji.identifier}`).catch(console.error);
       await trackGardenReaction(guildId, user.id, message.id);
     } catch (error) {
       console.error("🌳 Garden reaction tracking error:", error);

@@ -1,5 +1,6 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { initDb } from "./lib/database";
+import { initPetPals } from "./lib/petPalsBeta";
 import registerReadyEvent from "./events/ready";
 import registerGuildMemberAddEvent from "./events/guildMemberAdd";
 import registerMessageCreateEvent from "./events/messageCreate";
@@ -31,6 +32,7 @@ const client = new Client({
 
 async function main() {
   await initDb();
+  await initPetPals();
 
   registerReadyEvent(client);
   registerGuildMemberAddEvent(client);

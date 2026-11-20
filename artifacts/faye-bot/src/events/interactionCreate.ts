@@ -5,6 +5,7 @@ import {
   ChatInputCommandInteraction,
 } from "discord.js";
 import { commands } from "../commands";
+import { award, betaEnabled } from "../lib/petPalsBeta";
 import { handleSocialInteraction } from "../commands/gardenSocial";
 import { handleGardenViewButton } from "../lib/gardenView";
 import { handleGardenWaterInteraction, handleGardenPlantInteraction, handleGardenHarvestInteraction } from "../commands/garden";
@@ -26,6 +27,9 @@ export default function registerInteractionCreateEvent(client: Client) {
         if (!command) return;
 
         await command.execute(interaction as ChatInputCommandInteraction);
+        if (interaction.guildId && betaEnabled(interaction.channelId) && interaction.commandName !== "pal" && !["help","about","setup","warn","warnings","modlog"].includes(interaction.commandName)) {
+          await award(interaction.guildId,interaction.user.id,"slash_command",interaction.id).catch(console.error);
+        }
         return;
       }
 
