@@ -5,6 +5,7 @@ import * as qotd from "./qotd";
 import * as poll from "./poll";
 import * as song from "./song";
 import * as garden from "./garden";
+import * as pal from "./pal";
 import * as sticky from "./sticky";
 import * as reminder from "./reminder";
 import * as setup from "./setup";
@@ -38,6 +39,7 @@ const commandList: Command[] = [
   poll,
   song,
   garden,
+  pal,
   sticky,
   reminder,
   setup,
