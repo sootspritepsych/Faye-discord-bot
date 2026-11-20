@@ -7,7 +7,7 @@ export const speciesNames: Record<Species, string[]> = {
 };
 export const PET_PALS_TEST_CHANNEL_ID = process.env.PET_PALS_TEST_CHANNEL_ID || "1573395718171918528";
 export const betaEnabled = (channelId: string) => channelId === PET_PALS_TEST_CHANNEL_ID;
-export const levelFor = (xp: number) => Math.floor(Math.sqrt(Math.max(0, xp) / 25)) + 1;
+export const levelFor = (xp: number) => Math.floor(Math.sqrt(Math.max(0, xp) / 100)) + 1;
 export function cleanName(raw: string): string {
   const name = raw.trim().replace(/\s+/g, " ");
   if (!name || name.length > 24 || /[<>@\r\n]/.test(name)) throw new Error("Names must be 1–24 characters without mentions or markup.");
