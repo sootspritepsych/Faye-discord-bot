@@ -40,7 +40,7 @@ export async function execute(i:ChatInputCommandInteraction) {
           :`${format(index+1)} **${p.palName}** (<@${p.userId}>) — ${p.rating} rating • ${p.wins}W/${p.losses}L • ${Math.round(p.wins/p.battles*100)}% wins • streak ${p.streak>0?"+":""}${p.streak}`);
         await i.editReply({embeds:[new EmbedBuilder().setColor(0x91b99b)
           .setTitle(type==="xp"?"🌟 Pet Pals XP Rankings":"⚔️ Pet Pals Battle Rankings")
-          .setDescription(lines.join("\\n") || "No eligible Pals yet. 🌱")
+          .setDescription(lines.join("\n") || "No eligible Pals yet. 🌱")
           .setFooter({text:"Garden of Harmony • Live lifetime rankings"})]});return;
       }
       const pal=await getPal(guild,user);
@@ -48,7 +48,7 @@ export async function execute(i:ChatInputCommandInteraction) {
       const x=boards.xp.findIndex(p=>p.userId===user);
       const b=boards.battles.findIndex(p=>p.userId===user);
       const record=boards.xp[x];
-      const summary=`🌟 **${pal.pal_name}** • Level ${levelFor(pal.xp)} • ${pal.xp.toLocaleString()} XP\\n🏅 XP rank: **#${x+1}** of ${boards.xp.length}\\n⚔️ Battle rank: **${b<0?"Unranked":`#${b+1} of ${boards.battles.length}`}**\\n🏆 ${record.wins} wins • ${record.losses} losses • ${record.battles?Math.round(record.wins/record.battles*100):0}% win rate • Rating ${record.rating} • Streak ${record.streak}`;
+      const summary=`🌟 **${pal.pal_name}** • Level ${levelFor(pal.xp)} • ${pal.xp.toLocaleString()} XP\n🏅 XP rank: **#${x+1}** of ${boards.xp.length}\n⚔️ Battle rank: **${b<0?"Unranked":`#${b+1} of ${boards.battles.length}`}**\n🏆 ${record.wins} wins • ${record.losses} losses • ${record.battles?Math.round(record.wins/record.battles*100):0}% win rate • Rating ${record.rating} • Streak ${record.streak}`;
       await i.editReply({content:summary});return;
     }
     if (sub==="hatch") {
@@ -99,5 +99,5 @@ export async function execute(i:ChatInputCommandInteraction) {
       const activity = sub==="care" ? taskLabels[i.options.getString("task",true)] : null;
       await i.reply({content:xp?(activity?`💕 **${i.user.username}** completed self-care: **${activity}**! ${pal.pal_name} earned **+${xp} XP**!`:`💕 **${i.user.username}** played with **${pal.pal_name}** and earned **+${xp} XP**!`):(activity?`🌿 **${i.user.username}** selected **${activity}**, but has already earned this reward or reached today\'s limit.`:"🌿 You\'ve already earned this reward or reached today\'s limit. Come back later!"),ephemeral:false});return;
     }
-  } catch(e) {await i.reply({content:e instanceof Error?e.message:"Something went wrong.",ephemeral:false});}
+  } catch(e) {const content=e instanceof Error?e.message:"Something went wrong."; if(i.deferred||i.replied) await i.editReply({content}); else await i.reply({content,ephemeral:false});}
 }
