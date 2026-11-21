@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { battle, battleStats } from "../lib/petBattles";
+import { palRankings } from "../lib/palRankings";
 import { award,betaEnabled,cleanName,getPal,hatch,levelFor,rename,speciesNames, type Species } from "../lib/petPalsBeta";
 // Nine artwork URLs, one per species and evolution stage. HTTPS images only.
 function palArtUrl(species: Species, stage: number): string | null {
@@ -18,12 +19,38 @@ export const data = new SlashCommandBuilder().setName("pal").setDescription("Rai
  .addSubcommand(s=>s.setName("view").setDescription("View your Pal or another member's Pal").addUserOption(o=>o.setName("member").setDescription("Member to view")))
  .addSubcommand(s=>s.setName("battle").setDescription("Automatically battle another gardener’s Pet Pal").addUserOption(o=>o.setName("opponent").setDescription("Gardener to challenge").setRequired(true)))
  .addSubcommand(s=>s.setName("battle-stats").setDescription("See Pet Pal battle wins and losses").addUserOption(o=>o.setName("member").setDescription("Member to view")))
+ .addSubcommand(s=>s.setName("rankings").setDescription("View XP or battle leaderboards").addStringOption(o=>o.setName("type").setDescription("Leaderboard").setRequired(true).addChoices({name:"XP",value:"xp"},{name:"Battles",value:"battles"})))
+ .addSubcommand(s=>s.setName("rank").setDescription("See your Pal's position on both leaderboards"))
+ .addSubcommand(s=>s.setName("stats").setDescription("See your Pal's XP and battle record"))
  .addSubcommand(s=>s.setName("play").setDescription("Play with your Pal for XP"))
  .addSubcommand(s=>s.setName("care").setDescription("Complete an optional self-care quest").addStringOption(o=>o.setName("task").setDescription("Choose a self-care activity").setRequired(true).addChoices({name:"Drink water",value:"water"},{name:"Eat a meal or snack",value:"food"},{name:"Take a break",value:"rest"},{name:"Move or stretch",value:"move"},{name:"Do something joyful",value:"joy"},{name:"Get some fresh air",value:"fresh_air"},{name:"Take your medication",value:"medication"},{name:"Brush your teeth",value:"teeth"},{name:"Wash your face or shower",value:"wash"},{name:"Tidy a small space",value:"tidy"},{name:"Connect with someone",value:"connect"},{name:"Practice deep breathing",value:"breathe"},{name:"Journal your thoughts",value:"journal"},{name:"Enjoy a hobby",value:"hobby"},{name:"Set a boundary",value:"boundary"},{name:"Ask for help",value:"help"},{name:"Spend time with a pet",value:"pet"},{name:"Go to bed or rest",value:"sleep"},{name:"Take a screen break",value:"screen"},{name:"Celebrate a small win",value:"win"})));
 export async function execute(i:ChatInputCommandInteraction) {
   if (!i.guildId || !betaEnabled(i.channelId)) {await i.reply({content:"🌱 Pet Pals is currently available only in the designated tester channel.",ephemeral:false});return;}
   const sub=i.options.getSubcommand(), user=i.user.id,guild=i.guildId;
   try {
+    if (sub==="rankings" || sub==="rank" || sub==="stats") {
+      await i.deferReply();
+      const boards=await palRankings(guild);
+      const format=(n:number)=>n===1?"🥇":n===2?"🥈":n===3?"🥉":`#${n}`;
+      if (sub==="rankings") {
+        const type=i.options.getString("type",true) as "xp"|"battles";
+        const entries=boards[type].slice(0,10);
+        const lines=entries.map((p,index)=>type==="xp"
+          ?`${format(index+1)} **${p.palName}** (<@${p.userId}>) — Lv. ${p.level} • ${p.xp.toLocaleString()} XP`
+          :`${format(index+1)} **${p.palName}** (<@${p.userId}>) — ${p.rating} rating • ${p.wins}W/${p.losses}L • ${Math.round(p.wins/p.battles*100)}% wins • streak ${p.streak>0?"+":""}${p.streak}`);
+        await i.editReply({embeds:[new EmbedBuilder().setColor(0x91b99b)
+          .setTitle(type==="xp"?"🌟 Pet Pals XP Rankings":"⚔️ Pet Pals Battle Rankings")
+          .setDescription(lines.join("\n") || "No eligible Pals yet. 🌱")
+          .setFooter({text:"Garden of Harmony • Live lifetime rankings"})]});return;
+      }
+      const pal=await getPal(guild,user);
+      if (!pal) {await i.editReply("Hatch your starter first with `/pal hatch`.");return;}
+      const x=boards.xp.findIndex(p=>p.userId===user);
+      const b=boards.battles.findIndex(p=>p.userId===user);
+      const record=boards.xp[x];
+      const summary=`🌟 **${pal.pal_name}** • Level ${levelFor(pal.xp)} • ${pal.xp.toLocaleString()} XP\n🏅 XP rank: **#${x+1}** of ${boards.xp.length}\n⚔️ Battle rank: **${b<0?"Unranked":`#${b+1} of ${boards.battles.length}`}**\n🏆 ${record.wins} wins • ${record.losses} losses • ${record.battles?Math.round(record.wins/record.battles*100):0}% win rate • Rating ${record.rating} • Streak ${record.streak}`;
+      await i.editReply({content:summary});return;
+    }
     if (sub==="hatch") {
       const species=i.options.getString("starter",true) as Species;
       const name=cleanName(i.options.getString("name",true));
@@ -72,5 +99,5 @@ export async function execute(i:ChatInputCommandInteraction) {
       const activity = sub==="care" ? taskLabels[i.options.getString("task",true)] : null;
       await i.reply({content:xp?(activity?`💕 **${i.user.username}** completed self-care: **${activity}**! ${pal.pal_name} earned **+${xp} XP**!`:`💕 **${i.user.username}** played with **${pal.pal_name}** and earned **+${xp} XP**!`):(activity?`🌿 **${i.user.username}** selected **${activity}**, but has already earned this reward or reached today\'s limit.`:"🌿 You\'ve already earned this reward or reached today\'s limit. Come back later!"),ephemeral:false});return;
     }
-  } catch(e) {await i.reply({content:e instanceof Error?e.message:"Something went wrong.",ephemeral:false});}
+  } catch(e) {const content=e instanceof Error?e.message:"Something went wrong."; if(i.deferred||i.replied) await i.editReply({content}); else await i.reply({content,ephemeral:false});}
 }
