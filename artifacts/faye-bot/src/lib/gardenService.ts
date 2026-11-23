@@ -336,13 +336,13 @@ export async function waterGardenPlant(guildId: string, userId: string, plantId:
        WHERE guild_id=$1 AND user_id=$2 AND kind='water' AND created_at >= ${LOCAL_DAY_SQL}`,
       [guildId,userId]
     );
-    if (Number(cap.rows[0]?.n ?? 0) >= 3) {
+    if (Number(cap.rows[0]?.n ?? 0) >= 5) {
       await client.query("ROLLBACK"); return { status: "daily_limit" as const };
     }
     const ownPlant = p.rows[0].owner_id === userId;
     // Determine whether this is the first plant watered for this friend today.
     // Recording the entire reward in one water activity preserves badge counts
-    // and the existing three-waterings-per-day cap.
+    // and the existing five-waterings-per-day cap.
     const alreadyHelped = ownPlant ? true : (await client.query<{ helped: boolean }>(
       `SELECT EXISTS (
          SELECT 1 FROM faye_garden_waterings w
