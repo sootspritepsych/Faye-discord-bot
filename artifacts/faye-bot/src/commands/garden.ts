@@ -41,7 +41,7 @@ export const data = new SlashCommandBuilder()
         {name:"Emoji reactions given",value:"reaction"})))
   .addSubcommand(s=>s.setName("plants").setDescription("See the newest community plants and who owns them"))
   .addSubcommand(s=>s.setName("plant").setDescription("Pick a seasonal seed from a private emoji menu (one per day)"))
-  .addSubcommand(s=>s.setName("water").setDescription("Choose a gardener's plant to water (3/day)")
+  .addSubcommand(s=>s.setName("water").setDescription("Choose a gardener's plant to water (5/day)")
     .addUserOption(o=>o.setName("member").setDescription("Whose plant? Defaults to yours")))
   .addSubcommand(s=>s.setName("harvest").setDescription("Choose one of your ready-to-harvest plants"))
   .addSubcommand(s=>s.setName("decorate").setDescription("Place one seasonal decoration daily; repeats welcome")
@@ -275,7 +275,7 @@ async function completeWater(
       " **+" + r.points + " growth points!**" +
       (r.firstHelpBonus ? " 🌸 Includes a +2 first-help bonus for this gardener today!" : "")
     : r.status === "already_watered" ? "You've already watered this plant today. 💧"
-    : r.status === "daily_limit" ? "You've watered three plants today. Thanks for helping! 🌿"
+    : r.status === "daily_limit" ? "You've watered five plants today. Thanks for helping! 🌿"
     : r.status === "mature" ? "🌼 That plant is fully watered and ready for its owner to harvest!"
     : r.status === "wrong_owner" ? "That plant doesn't belong to the member you selected. Choose from their menu instead."
     : r.status === "missing" ? "That plant isn't available or has already been harvested."
